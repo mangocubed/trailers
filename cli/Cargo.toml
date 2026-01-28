@@ -1,0 +1,12 @@
+[package]
+name = "trailers-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+clap = { version = "4.5.55", features = ["derive"] }
+tokio.workspace = true
+trailers-core.workspace = true

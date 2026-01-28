@@ -1,0 +1,16 @@
+[package]
+name = "trailers-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[build-dependencies]
+chrono = "0.4.43"
+
+[dependencies]
+async-graphql.workspace = true
+chrono = { version =  "0.4.43", features = ["serde"] }
+envconfig = "0.11.1"
+serde = "1.0.228"

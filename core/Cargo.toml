@@ -10,7 +10,25 @@ repository.workspace = true
 chrono = "0.4.43"
 
 [dependencies]
-async-graphql = { workspace = true, features = ["chrono"] }
-chrono = { version =  "0.4.43", features = ["serde"] }
+apalis.workspace = true
+apalis-redis = "1.0.0-rc.2"
+async-graphql = { workspace = true, features = ["chrono", "uuid"] }
+argon2 = "0.5.3"
+cached = { version = "0.56.0", features = [
+    "async",
+    "redis_store",
+    "redis_tokio",
+] }
+chrono = { version = "0.4.43", features = ["serde"] }
 envconfig = "0.11.1"
+regex = "1.12.2"
 serde = "1.0.228"
+serde_json = "1.0.149"
+sqlx = { version = "0.8.6", features = [
+    "chrono",
+    "postgres",
+    "runtime-tokio",
+    "uuid",
+] }
+tokio.workspace = true
+uuid = "1.20.0"

@@ -7,7 +7,11 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-async-graphql.workspace = true
+async-graphql = { workspace = true, features = [
+    "apollo_persisted_queries",
+    "apollo_tracing",
+    "log",
+] }
 async-graphql-axum = "8.0.0-rc.1"
 axum = "0.8.8"
 serde_json = "1.0.149"

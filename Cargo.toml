@@ -10,11 +10,6 @@ homepage = "https://trailers.mango3.app"
 repository = "https://github.com/mangocubed/trailers"
 
 [workspace.dependencies]
-async-graphql = { version = "8.0.0-rc.1", features = [
-    "apollo_persisted_queries",
-    "apollo_tracing",
-    "chrono",
-    "tracing",
-] }
+async-graphql = "8.0.0-rc.1"
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 trailers-core = { path = "./core" }

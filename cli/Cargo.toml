@@ -7,6 +7,6 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-clap = { version = "4.5.55", features = ["derive"] }
+clap = { version = "4.5.56", features = ["derive"] }
 tokio.workspace = true
-trailers-core.workspace = true
+trailers-core = { workspace = true, features = ["graphql"] }

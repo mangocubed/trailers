@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["api", "cli", "core"]
+members = ["api", "cli", "core", "monitor"]
 
 [workspace.package]
 version = "0.0.0-alpha.0"
@@ -10,7 +10,15 @@ homepage = "https://trailers.mango3.app"
 repository = "https://github.com/mangocubed/trailers"
 
 [workspace.dependencies]
-apalis = "1.0.0-rc.2"
+apalis = "1.0.0-rc.3"
 async-graphql = "8.0.0-rc.1"
-tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
-trailers-core = { path = "./core" }
+envconfig = "0.11.1"
+serde = "1.0.228"
+tokio = { version = "1.49.0", features = [
+    "macros",
+    "rt-multi-thread",
+    "signal",
+] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+trailers-core = { path = "./core", default-features = false }

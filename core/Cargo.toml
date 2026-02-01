@@ -12,7 +12,10 @@ chrono = "0.4.43"
 [dependencies]
 apalis.workspace = true
 apalis-redis = "1.0.0-rc.2"
-async-graphql = { workspace = true, features = ["chrono", "uuid"] }
+async-graphql = { workspace = true, features = [
+    "chrono",
+    "uuid",
+], optional = true }
 argon2 = "0.5.3"
 cached = { version = "0.56.0", features = [
     "async",
@@ -20,9 +23,11 @@ cached = { version = "0.56.0", features = [
     "redis_tokio",
 ] }
 chrono = { version = "0.4.43", features = ["serde"] }
-envconfig = "0.11.1"
-regex = "1.12.2"
-serde = "1.0.228"
+envconfig.workspace = true
+rand = "0.9.2"
+regex = { version = "1.12.2", optional = true }
+rust_iso3166 = "0.1.14"
+serde.workspace = true
 serde_json = "1.0.149"
 sqlx = { version = "0.8.6", features = [
     "chrono",
@@ -31,4 +36,8 @@ sqlx = { version = "0.8.6", features = [
     "uuid",
 ] }
 tokio.workspace = true
-uuid = "1.20.0"
+uuid = { version = "1.20.0", features = ["serde"] }
+
+[features]
+default = ["graphql"]
+graphql = ["dep:async-graphql", "dep:regex"]

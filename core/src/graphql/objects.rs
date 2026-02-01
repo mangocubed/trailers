@@ -1,8 +1,8 @@
-use async_graphql::{ID, Object};
+use async_graphql::{ID, Object, Result};
 use chrono::{DateTime, Utc};
 
 use crate::Info;
-use crate::models::User;
+use crate::models::{Session, User};
 
 pub struct InfoObject(pub Info);
 
@@ -35,6 +35,39 @@ impl UserObject<'_> {
 
     async fn full_name(&self) -> &str {
         &self.0.full_name
+    }
+
+    async fn initials(&self) -> String {
+        self.0.initials()
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
+pub struct SessionObject<'a>(pub Session<'a>);
+
+#[Object]
+impl SessionObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn user_id(&self) -> ID {
+        self.0.user_id.into()
+    }
+
+    async fn user(&self) -> Result<UserObject<'_>> {
+        Ok(UserObject(self.0.user().await?))
+    }
+
+    async fn token(&self) -> &str {
+        &self.0.token
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

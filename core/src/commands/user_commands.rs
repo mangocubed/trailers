@@ -1,55 +1,25 @@
-use std::fmt::Display;
-
 use argon2::password_hash::SaltString;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHasher};
-use cached::async_sync::OnceCell;
+use cached::AsyncRedisCache;
 use cached::proc_macro::io_cached;
-use cached::{AsyncRedisCache, IOCachedAsync};
 use chrono::NaiveDate;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
 use uuid::Uuid;
 
-use crate::config::CACHE_CONFIG;
-use crate::constants::{CACHE_PREFIX_GET_USER_ID_BY_EMAIL, CACHE_PREFIX_GET_USER_ID_BY_USERNAME};
+use crate::constants::*;
 use crate::models::User;
 use crate::{db_pool, jobs_storage};
 
-async fn async_redis_cache<K, V>(prefix: &str) -> AsyncRedisCache<K, V>
-where
-    K: Display + Send + Sync,
-    V: DeserializeOwned + Display + Send + Serialize + Sync,
-{
-    AsyncRedisCache::new(format!("{prefix}:"), CACHE_CONFIG.ttl())
-        .set_connection_string(&CACHE_CONFIG.redis_url)
-        .set_refresh(true)
-        .build()
-        .await
-        .expect("Could not get redis cache")
-}
+use super::async_redis_cache;
 
-#[allow(dead_code)]
-pub(crate) trait AsyncRedisCacheTrait<K> {
-    async fn cache_remove(&self, prefix: &str, key: &K);
-}
+pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &str) -> sqlx::Result<User<'a>> {
+    let user = get_user_by_username_or_email(&username_or_email).await?;
 
-impl<K, V> AsyncRedisCacheTrait<K> for OnceCell<AsyncRedisCache<K, V>>
-where
-    K: Display + Send + Sync,
-    V: DeserializeOwned + Display + Send + Serialize + Sync,
-{
-    async fn cache_remove(&self, prefix: &str, key: &K) {
-        let _ = self
-            .get_or_init(|| async { async_redis_cache(prefix).await })
-            .await
-            .cache_remove(key)
-            .await;
+    if user.verify_password(&password) {
+        Ok(user)
+    } else {
+        Err(sqlx::Error::RowNotFound)
     }
-}
-
-pub async fn email_exists(email: &str) -> bool {
-    get_user_id_by_email(email).await.is_ok()
 }
 
 fn encrypt_password(value: &str) -> String {
@@ -60,11 +30,72 @@ fn encrypt_password(value: &str) -> String {
 
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    ty = "AsyncRedisCache<Uuid, User<'_>>",
+    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_BY_ID).await }"##
+)]
+pub async fn get_user_by_id(id: Uuid) -> sqlx::Result<User<'static>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        User,
+        "SELECT * FROM users WHERE disabled_at IS NULL AND id = $1 LIMIT 1",
+        id
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    ty = "AsyncRedisCache<String, User<'_>>",
+    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_BY_SESSION_TOKEN).await }"##
+)]
+pub async fn get_user_by_session_token(token: String) -> sqlx::Result<User<'static>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        User,
+        "SELECT * FROM users
+        WHERE
+            disabled_at IS NULL
+            AND id = (SELECT user_id FROM sessions WHERE finished_at IS NULL AND token = $1 LIMIT 1)
+        LIMIT 1",
+        token
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    ty = "AsyncRedisCache<&str, User<'_>>",
+    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_BY_USERNAME_OR_EMAIL).await }"##
+)]
+async fn get_user_by_username_or_email(username_or_email: &str) -> sqlx::Result<User<'static>> {
+    if username_or_email.is_empty() {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        User,
+        "SELECT * FROM users
+        WHERE disabled_at IS NULL AND (LOWER(username) = $1 OR LOWER(email) = $1)
+        LIMIT 1",
+        username_or_email.to_lowercase()
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ email.to_lowercase() }"#,
-    ty = "cached::AsyncRedisCache<String, Uuid>",
+    ty = "AsyncRedisCache<String, Uuid>",
     create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_ID_BY_EMAIL).await }"##
 )]
-pub async fn get_user_id_by_email(email: &str) -> sqlx::Result<Uuid> {
+async fn get_user_id_by_email(email: &str) -> sqlx::Result<Uuid> {
     if email.is_empty() {
         return Err(sqlx::Error::InvalidArgument("email".to_owned()));
     }
@@ -83,10 +114,10 @@ pub async fn get_user_id_by_email(email: &str) -> sqlx::Result<Uuid> {
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ username.to_lowercase() }"#,
-    ty = "cached::AsyncRedisCache<String, Uuid>",
+    ty = "AsyncRedisCache<String, Uuid>",
     create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_ID_BY_USERNAME).await }"##
 )]
-pub async fn get_user_id_by_username(username: &str) -> sqlx::Result<Uuid> {
+async fn get_user_id_by_username(username: &str) -> sqlx::Result<Uuid> {
     if username.is_empty() {
         return Err(sqlx::Error::InvalidArgument("username".to_owned()));
     }
@@ -103,7 +134,7 @@ pub async fn get_user_id_by_username(username: &str) -> sqlx::Result<Uuid> {
 }
 
 /// Attempts to insert an user into the database without making validations.
-pub async fn insert_user<'a>(
+pub(crate) async fn insert_user<'a>(
     username: &str,
     email: &str,
     password: &str,
@@ -142,6 +173,10 @@ pub async fn insert_user<'a>(
     Ok(user)
 }
 
-pub async fn username_exists(username: &str) -> bool {
+pub(crate) async fn user_email_exists(email: &str) -> bool {
+    get_user_id_by_email(email).await.is_ok()
+}
+
+pub(crate) async fn user_username_exists(username: &str) -> bool {
     get_user_id_by_username(username).await.is_ok()
 }

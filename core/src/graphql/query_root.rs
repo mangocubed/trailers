@@ -1,12 +1,17 @@
-use async_graphql::Object;
+use async_graphql::{Context, Object};
 
 use crate::Info;
-use crate::graphql::objects::InfoObject;
+use crate::graphql::CustomContext;
+use crate::graphql::objects::{InfoObject, UserObject};
 
 pub struct QueryRoot;
 
 #[Object]
 impl QueryRoot {
+    async fn current_user<'a>(&self, ctx: &'a Context<'_>) -> Option<UserObject<'a>> {
+        ctx.user_opt().map(|user| UserObject(user.clone()))
+    }
+
     async fn info(&self) -> InfoObject {
         InfoObject(Info::default())
     }

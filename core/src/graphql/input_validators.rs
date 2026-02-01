@@ -3,7 +3,7 @@ use chrono::{NaiveDate, Utc};
 use regex::Regex;
 
 use crate::block_on;
-use crate::commands::{email_exists, username_exists};
+use crate::commands::{user_email_exists, user_username_exists};
 use crate::constants::{REGEX_EMAIL, REGEX_USERNAME};
 
 pub struct BirthdateValidator;
@@ -37,7 +37,7 @@ impl CustomValidator<String> for EmailValidator {
         validate_length("email", value, 5, 255)?;
         validate_format("email", value, &REGEX_EMAIL)?;
 
-        if block_on(email_exists(value)) {
+        if block_on(user_email_exists(value)) {
             Err(input_value_error("email", "Already exists"))
         } else {
             Ok(())
@@ -66,6 +66,19 @@ impl CustomValidator<String> for PasswordValidator {
     }
 }
 
+pub struct UsernameOrEmailValidator;
+
+impl CustomValidator<String> for UsernameOrEmailValidator {
+    fn check(&self, value: &String) -> Result<(), InputValueError<String>> {
+        validate_presence("usernameOrEmail", value)?;
+        validate_length("usernameOrEmail", value, 3, 255)?;
+        validate_format("usernameOrEmail", value, &REGEX_USERNAME)
+            .or_else(|_| validate_format("usernameOrEmail", value, &REGEX_EMAIL))?;
+
+        Ok(())
+    }
+}
+
 pub struct UsernameValidator;
 
 impl CustomValidator<String> for UsernameValidator {
@@ -74,7 +87,7 @@ impl CustomValidator<String> for UsernameValidator {
         validate_length("username", value, 3, 16)?;
         validate_format("username", value, &REGEX_USERNAME)?;
 
-        if block_on(username_exists(value)) {
+        if block_on(user_username_exists(value)) {
             Err(input_value_error("username", "Already exists"))
         } else {
             return Ok(());

@@ -1,0 +1,18 @@
+[package]
+name = "trailers-monitor"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+apalis.workspace = true
+envconfig.workspace = true
+lettre = { version = "0.11.19", features = [
+    "smtp-transport",
+    "tokio1-native-tls",
+] }
+reqwest = { version = "0.13.1", features = ["json"] }
+serde.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+trailers-core.workspace = true

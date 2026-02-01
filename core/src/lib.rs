@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use apalis::prelude::TaskSink;
 use apalis_redis::RedisStorage;
 use chrono::{DateTime, Utc};
@@ -6,17 +8,19 @@ use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tokio::sync::OnceCell;
 
-mod commands;
 mod constants;
-mod models;
 
-pub mod config;
+#[cfg(feature = "graphql")]
 pub mod graphql;
+
+pub mod commands;
+pub mod config;
 pub mod jobs;
+pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
-use crate::jobs::NewUserJob;
-use crate::models::User;
+use crate::jobs::{NewSessionJob, NewUserJob};
+use crate::models::{Session, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
@@ -44,12 +48,14 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
 }
 
 pub struct JobsStorage {
+    pub new_session: RedisStorage<NewSessionJob>,
     pub new_user: RedisStorage<NewUserJob>,
 }
 
 impl JobsStorage {
     async fn new() -> Self {
         Self {
+            new_session: Self::storage().await,
             new_user: Self::storage().await,
         }
     }
@@ -60,6 +66,17 @@ impl JobsStorage {
             .expect("Could not connect to Redis Jobs DB");
 
         RedisStorage::new(conn)
+    }
+
+    pub(crate) async fn push_new_session(&self, session: &Session<'_>, ip_addr: IpAddr) {
+        self.new_session
+            .clone()
+            .push(NewSessionJob {
+                session_id: session.id,
+                ip_addr,
+            })
+            .await
+            .expect("Could not store job");
     }
 
     pub(crate) async fn push_new_user(&self, user: &User<'_>) {

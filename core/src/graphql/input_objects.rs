@@ -18,3 +18,11 @@ pub struct UserInputObject {
     #[graphql(validator(custom = CountryCodeValidator))]
     pub country_code: String,
 }
+
+#[derive(InputObject)]
+pub struct SessionInputObject {
+    #[graphql(validator(custom = UsernameOrEmailValidator))]
+    pub username_or_email: String,
+    #[graphql(secret, validator(custom = PasswordValidator))]
+    pub password: String,
+}

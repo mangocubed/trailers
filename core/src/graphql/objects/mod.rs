@@ -1,8 +1,10 @@
 use async_graphql::{ID, Object, Result};
 use chrono::{DateTime, Utc};
+use url::Url;
 
-use crate::Info;
-use crate::models::{Genre, Keyword, Session, User};
+use crate::enums::TitleCrewJob;
+use crate::models::{Genre, Keyword, Person, Session, TitleCast, TitleCrew, User};
+use crate::{Info, commands};
 
 mod title_object;
 
@@ -63,6 +65,31 @@ impl KeywordObject<'_> {
     }
 }
 
+pub struct PersonObject<'a>(pub Person<'a>);
+
+#[Object]
+impl PersonObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn profile_image_url(&self) -> Option<Url> {
+        self.0.profile_image_url()
+    }
+
+    async fn name(&self) -> &str {
+        &self.0.name
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
 pub struct SessionObject<'a>(pub Session<'a>);
 
 #[Object]
@@ -71,16 +98,62 @@ impl SessionObject<'_> {
         self.0.id.into()
     }
 
-    async fn user_id(&self) -> ID {
-        self.0.user_id.into()
-    }
-
     async fn user(&self) -> Result<UserObject<'_>> {
         Ok(UserObject(self.0.user().await?))
     }
 
     async fn token(&self) -> &str {
         &self.0.token
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
+pub struct TitleCastObject<'a>(pub TitleCast<'a>);
+
+#[Object]
+impl TitleCastObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn person(&self) -> Result<PersonObject<'_>> {
+        Ok(commands::get_person_by_id(self.0.person_id).await.map(PersonObject)?)
+    }
+
+    async fn character_name(&self) -> &str {
+        &self.0.character_name
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
+pub struct TitleCrewObject<'a>(pub TitleCrew<'a>);
+
+#[Object]
+impl TitleCrewObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn person(&self) -> Result<PersonObject<'_>> {
+        Ok(commands::get_person_by_id(self.0.person_id).await.map(PersonObject)?)
+    }
+
+    async fn job(&self) -> TitleCrewJob {
+        self.0.job
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

@@ -9,7 +9,7 @@ use crate::enums::TitleMediaType;
 use crate::models::Title;
 use crate::pagination::CursorParams;
 
-use super::{GenreObject, KeywordObject};
+use super::{GenreObject, KeywordObject, TitleCastObject, TitleCrewObject};
 
 pub struct TitleObject<'a>(pub Title<'a>);
 
@@ -23,12 +23,12 @@ impl TitleObject<'_> {
         self.0.media_type
     }
 
-    async fn tmdb_backdrop_image_url(&self) -> Option<Url> {
-        self.0.backdrop_url()
+    async fn backdrop_image_url(&self) -> Option<Url> {
+        self.0.backdrop_image_url()
     }
 
-    async fn tmdb_poster_image_url(&self) -> Option<Url> {
-        self.0.poster_url()
+    async fn poster_image_url(&self) -> Option<Url> {
+        self.0.poster_image_url()
     }
 
     async fn name(&self) -> &str {
@@ -46,6 +46,52 @@ impl TitleObject<'_> {
             .map(|value| TimeDelta::microseconds(value.microseconds))
     }
 
+    async fn cast(
+        &self,
+        after: Option<String>,
+        first: Option<i32>,
+    ) -> async_graphql::Result<Connection<Uuid, TitleCastObject<'_>, EmptyFields, EmptyFields>> {
+        query(after, None, first, None, |after, _before, first, _last| async move {
+            let first = first.map(|v| v as u8).unwrap_or(10);
+            let cursor_page = commands::paginate_title_cast(&CursorParams { after, first }, Some(&self.0)).await;
+
+            let mut connection = Connection::new(false, cursor_page.has_next_page);
+
+            connection.edges.extend(
+                cursor_page
+                    .nodes
+                    .into_iter()
+                    .map(|title_cast| Edge::new(title_cast.id, TitleCastObject(title_cast))),
+            );
+
+            Ok::<_, async_graphql::Error>(connection)
+        })
+        .await
+    }
+
+    async fn crew(
+        &self,
+        after: Option<String>,
+        first: Option<i32>,
+    ) -> async_graphql::Result<Connection<Uuid, TitleCrewObject<'_>, EmptyFields, EmptyFields>> {
+        query(after, None, first, None, |after, _before, first, _last| async move {
+            let first = first.map(|v| v as u8).unwrap_or(10);
+            let cursor_page = commands::paginate_title_crew(&CursorParams { after, first }, Some(&self.0)).await;
+
+            let mut connection = Connection::new(false, cursor_page.has_next_page);
+
+            connection.edges.extend(
+                cursor_page
+                    .nodes
+                    .into_iter()
+                    .map(|title_crew| Edge::new(title_crew.id, TitleCrewObject(title_crew))),
+            );
+
+            Ok::<_, async_graphql::Error>(connection)
+        })
+        .await
+    }
+
     async fn genres(
         &self,
         after: Option<ID>,
@@ -58,12 +104,13 @@ impl TitleObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let page = commands::paginate_genres(&CursorParams { after, first }, Some(&self.0)).await;
+                let cursor_page = commands::paginate_genres(&CursorParams { after, first }, Some(&self.0)).await;
 
-                let mut connection = Connection::new(false, page.has_next_page);
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
-                    page.nodes
+                    cursor_page
+                        .nodes
                         .into_iter()
                         .map(|genre| Edge::new(genre.id, GenreObject(genre))),
                 );
@@ -86,12 +133,13 @@ impl TitleObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let page = commands::paginate_keywords(&CursorParams { after, first }, Some(&self.0)).await;
+                let cursor_page = commands::paginate_keywords(&CursorParams { after, first }, Some(&self.0)).await;
 
-                let mut connection = Connection::new(false, page.has_next_page);
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
-                    page.nodes
+                    cursor_page
+                        .nodes
                         .into_iter()
                         .map(|keyword| Edge::new(keyword.id, KeywordObject(keyword))),
                 );

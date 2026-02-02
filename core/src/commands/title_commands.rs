@@ -157,13 +157,13 @@ pub async fn insert_or_update_title<'a>(
     .await?;
 
     if let Some(source_url) = tmdb_backdrop_url
-        && let Some(dest_url) = title.backdrop_path()
+        && let Some(dest_url) = title.backdrop_image_path()
     {
         let _ = download_file(source_url, dest_url).await;
     }
 
     if let Some(source_url) = tmdb_poster_url
-        && let Some(dest_url) = title.poster_path()
+        && let Some(dest_url) = title.poster_image_path()
     {
         let _ = download_file(source_url, dest_url).await;
     }

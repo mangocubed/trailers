@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::commands;
 use crate::config::STORAGE_CONFIG;
-use crate::enums::TitleMediaType;
+use crate::enums::{TitleCrewJob, TitleMediaType};
 
 pub struct Genre<'a> {
     pub id: Uuid,
@@ -31,6 +31,27 @@ pub struct Person<'a> {
     pub name: Cow<'a, str>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Person<'_> {
+    pub fn profile_image_path(&self) -> Option<PathBuf> {
+        if self.tmdb_profile_path.is_some() {
+            Some(STORAGE_CONFIG.path.join(format!("person_profiles/{}.jpg", self.id)))
+        } else {
+            None
+        }
+    }
+
+    pub fn profile_image_url(&self) -> Option<Url> {
+        if self.tmdb_profile_path.is_some() {
+            STORAGE_CONFIG
+                .url()
+                .join(&format!("person_profiles/{}.jpg", self.id))
+                .ok()
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -98,7 +119,7 @@ pub struct Title<'a> {
 }
 
 impl Title<'_> {
-    pub fn backdrop_path(&self) -> Option<PathBuf> {
+    pub fn backdrop_image_path(&self) -> Option<PathBuf> {
         if self.tmdb_backdrop_path.is_some() {
             Some(STORAGE_CONFIG.path.join(format!("title_backdrops/{}.jpg", self.id)))
         } else {
@@ -106,7 +127,7 @@ impl Title<'_> {
         }
     }
 
-    pub fn backdrop_url(&self) -> Option<Url> {
+    pub fn backdrop_image_url(&self) -> Option<Url> {
         if self.tmdb_backdrop_path.is_some() {
             STORAGE_CONFIG
                 .url()
@@ -117,7 +138,7 @@ impl Title<'_> {
         }
     }
 
-    pub fn poster_path(&self) -> Option<PathBuf> {
+    pub fn poster_image_path(&self) -> Option<PathBuf> {
         if self.tmdb_poster_path.is_some() {
             Some(STORAGE_CONFIG.path.join(format!("title_posters/{}.jpg", self.id)))
         } else {
@@ -125,7 +146,7 @@ impl Title<'_> {
         }
     }
 
-    pub fn poster_url(&self) -> Option<Url> {
+    pub fn poster_image_url(&self) -> Option<Url> {
         if self.tmdb_poster_path.is_some() {
             STORAGE_CONFIG
                 .url()
@@ -135,6 +156,26 @@ impl Title<'_> {
             None
         }
     }
+}
+
+pub struct TitleCast<'a> {
+    pub id: Uuid,
+    pub title_id: Uuid,
+    pub person_id: Uuid,
+    pub tmdb_credit_id: Cow<'a, str>,
+    pub character_name: Cow<'a, str>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+pub struct TitleCrew<'a> {
+    pub id: Uuid,
+    pub title_id: Uuid,
+    pub person_id: Uuid,
+    pub tmdb_credit_id: Cow<'a, str>,
+    pub job: TitleCrewJob,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]

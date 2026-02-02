@@ -3,9 +3,9 @@ use std::str::FromStr;
 use chrono::{NaiveDate, TimeDelta};
 use reqwest::StatusCode;
 
-use trailers_core::commands;
 use trailers_core::enums::TitleMediaType;
 use trailers_core::models::Title;
+use trailers_core::{commands, enums::TitleCrewJob};
 
 use crate::tmdb::{Tmdb, TmdbGenre};
 
@@ -44,24 +44,16 @@ pub async fn populate_movies(end_date: Option<NaiveDate>, start_date: Option<Nai
 
                     let release_date = tmdb_movie
                         .release_date
+                        .as_ref()
                         .and_then(|value| NaiveDate::from_str(&value).ok());
-
-                    let tmdb_backdrop_url = tmdb_movie
-                        .backdrop_path
-                        .as_deref()
-                        .map(|image_path| Tmdb::image_url(image_path));
-                    let tmdb_poster_url = tmdb_movie
-                        .poster_path
-                        .as_deref()
-                        .map(|image_path| Tmdb::image_url(image_path));
 
                     let result = commands::insert_or_update_title(
                         media_type,
                         tmdb_movie.id,
                         tmdb_movie.backdrop_path.as_deref(),
-                        tmdb_backdrop_url,
+                        tmdb_movie.backdrop_url(),
                         tmdb_movie.poster_path.as_deref(),
-                        tmdb_poster_url,
+                        tmdb_movie.poster_url(),
                         tmdb_movie.imdb_id.as_deref(),
                         &tmdb_movie.title,
                         &tmdb_movie.overview,
@@ -124,6 +116,7 @@ pub async fn populate_persons(end_date: Option<NaiveDate>, start_date: Option<Na
                     let _ = commands::insert_or_update_person(
                         tmdb_person.id,
                         tmdb_person.profile_path.as_deref(),
+                        tmdb_person.profile_url(),
                         tmdb_person.imdb_id.as_deref(),
                         &tmdb_person.name,
                     )
@@ -173,24 +166,16 @@ pub async fn populate_series(end_date: Option<NaiveDate>, start_date: Option<Nai
                 Ok(tmdb_tv) => {
                     let first_air_date = tmdb_tv
                         .first_air_date
+                        .as_ref()
                         .and_then(|value| NaiveDate::from_str(&value).ok());
-
-                    let tmdb_backdrop_url = tmdb_tv
-                        .backdrop_path
-                        .as_deref()
-                        .map(|image_path| Tmdb::image_url(image_path));
-                    let tmdb_poster_url = tmdb_tv
-                        .poster_path
-                        .as_deref()
-                        .map(|image_path| Tmdb::image_url(image_path));
 
                     let result = commands::insert_or_update_title(
                         TitleMediaType::Series,
                         tmdb_tv.id,
                         tmdb_tv.backdrop_path.as_deref(),
-                        tmdb_backdrop_url,
+                        tmdb_tv.backdrop_url(),
                         tmdb_tv.poster_path.as_deref(),
-                        tmdb_poster_url,
+                        tmdb_tv.poster_url(),
                         tmdb_tv.imdb_id.as_deref(),
                         &tmdb_tv.name,
                         &tmdb_tv.overview,
@@ -227,7 +212,45 @@ pub async fn populate_series(end_date: Option<NaiveDate>, start_date: Option<Nai
     Ok(())
 }
 
+async fn populate_title_cast_and_crew(title: &Title<'_>) -> anyhow::Result<()> {
+    let tmdb = Tmdb::new();
+
+    let tmdb_credits = match title.media_type {
+        TitleMediaType::Series => tmdb.tv_credits(title.tmdb_id).await?,
+        _ => tmdb.movie_credits(title.tmdb_id).await?,
+    };
+
+    for tmdb_cast in tmdb_credits.cast {
+        let Ok(person) =
+            commands::get_or_insert_person(tmdb_cast.id, tmdb_cast.profile_path.as_deref(), None, &tmdb_cast.name)
+                .await
+        else {
+            continue;
+        };
+
+        let _ = commands::insert_title_cast(title, &person, &tmdb_cast.credit_id, &tmdb_cast.character).await;
+    }
+
+    for tmdb_crew in tmdb_credits.crew {
+        if tmdb_crew.job != "Director" {
+            continue;
+        }
+
+        let Ok(person) =
+            commands::get_or_insert_person(tmdb_crew.id, tmdb_crew.profile_path.as_deref(), None, &tmdb_crew.name)
+                .await
+        else {
+            continue;
+        };
+
+        let _ = commands::insert_title_crew(title, &person, &tmdb_crew.credit_id, TitleCrewJob::Director).await;
+    }
+
+    Ok(())
+}
+
 async fn populate_title_extras(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>]) -> anyhow::Result<()> {
+    let _ = populate_title_cast_and_crew(title).await;
     let _ = populate_title_genres(title, tmdb_genres).await;
     let _ = populate_title_keywords(title).await;
 
@@ -246,7 +269,7 @@ async fn populate_title_genres(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>])
     Ok(())
 }
 
-pub async fn populate_title_keywords(title: &Title<'_>) -> anyhow::Result<()> {
+async fn populate_title_keywords(title: &Title<'_>) -> anyhow::Result<()> {
     let tmdb = Tmdb::new();
 
     let tmdb_keywords = match title.media_type {

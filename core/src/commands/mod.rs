@@ -17,14 +17,18 @@ mod genre_commands;
 mod keyword_commands;
 mod person_commands;
 mod session_commands;
+mod title_cast_commands;
 mod title_commands;
+mod title_crew_commands;
 mod user_commands;
 
-pub use person_commands::*;
 pub use genre_commands::*;
 pub use keyword_commands::*;
+pub use person_commands::*;
 pub use session_commands::*;
+pub use title_cast_commands::*;
 pub use title_commands::*;
+pub use title_crew_commands::*;
 pub use user_commands::*;
 
 async fn async_redis_cache<K, V>(prefix: &str) -> AsyncRedisCache<K, V>
@@ -61,6 +65,10 @@ where
 
 async fn download_file(source_url: Url, dest_path: PathBuf) -> anyhow::Result<()> {
     let bytes = reqwest::get(source_url).await?.bytes().await?;
+
+    if let Some(parent_dir) = dest_path.parent() {
+        std::fs::create_dir_all(parent_dir)?;
+    }
 
     let mut file = File::create(dest_path)?;
 

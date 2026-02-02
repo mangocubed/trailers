@@ -83,12 +83,34 @@ pub struct TmdbMovie<'a> {
     pub genres: Vec<TmdbGenre<'a>>,
 }
 
+impl TmdbMovie<'_> {
+    pub fn backdrop_url(&self) -> Option<Url> {
+        self.backdrop_path
+            .as_deref()
+            .map(|image_path| Tmdb::image_url(image_path))
+    }
+
+    pub fn poster_url(&self) -> Option<Url> {
+        self.poster_path
+            .as_deref()
+            .map(|image_path| Tmdb::image_url(image_path))
+    }
+}
+
 #[derive(Deserialize)]
 pub struct TmdbPerson<'a> {
     pub id: i32,
     pub imdb_id: Option<Cow<'a, str>>,
     pub name: Cow<'a, str>,
     pub profile_path: Option<Cow<'a, str>>,
+}
+
+impl TmdbPerson<'_> {
+    pub fn profile_url(&self) -> Option<Url> {
+        self.profile_path
+            .as_deref()
+            .map(|image_path| Tmdb::image_url(image_path))
+    }
 }
 
 #[derive(Deserialize)]
@@ -103,6 +125,20 @@ pub struct TmdbTV<'a> {
     pub adult: Option<bool>,
     pub first_air_date: Option<Cow<'a, str>>,
     pub genres: Vec<TmdbGenre<'a>>,
+}
+
+impl TmdbTV<'_> {
+    pub fn backdrop_url(&self) -> Option<Url> {
+        self.backdrop_path
+            .as_deref()
+            .map(|image_path| Tmdb::image_url(image_path))
+    }
+
+    pub fn poster_url(&self) -> Option<Url> {
+        self.poster_path
+            .as_deref()
+            .map(|image_path| Tmdb::image_url(image_path))
+    }
 }
 
 #[derive(Deserialize)]

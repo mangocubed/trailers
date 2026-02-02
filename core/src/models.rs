@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::commands;
 use crate::config::STORAGE_CONFIG;
-use crate::enums::{TitleCrewJob, TitleMediaType};
+use crate::enums::{TitleCrewJob, TitleMediaType, VideoOrientation, VideoSource, VideoType};
 
 pub struct Genre<'a> {
     pub id: Uuid,
@@ -217,5 +217,38 @@ impl User<'_> {
         };
 
         argon2.verify_password(password.as_bytes(), &password_hash).is_ok()
+    }
+}
+
+pub struct Video<'a> {
+    pub id: Uuid,
+    pub title_id: Uuid,
+    pub tmdb_id: Cow<'a, str>,
+    pub source: VideoSource,
+    pub source_key: Cow<'a, str>,
+    pub name: Cow<'a, str>,
+    pub video_type: VideoType,
+    pub duration_secs: i32,
+    pub orientation: VideoOrientation,
+    pub language: Cow<'a, str>,
+    pub relevance: i64,
+    pub published_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Video<'_> {
+    pub fn path(&self) -> PathBuf {
+        STORAGE_CONFIG.path.join(format!("videos/{}.mp4", self.id))
+    }
+
+    pub async fn title(&self) -> Title<'_> {
+        commands::get_title_by_id(self.title_id, None)
+            .await
+            .expect("Could not get title")
+    }
+
+    pub fn url(&self) -> Url {
+        STORAGE_CONFIG.url().join(&format!("videos/{}.mp4", self.id)).unwrap()
     }
 }

@@ -11,6 +11,7 @@ pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
 pub static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
 pub(crate) static USERS_CONFIG: LazyLock<UsersConfig> = LazyLock::new(|| UsersConfig::init_from_env().unwrap());
+pub(crate) static YT_DLP_CONFIG: LazyLock<YtDlpConfig> = LazyLock::new(|| YtDlpConfig::init_from_env().unwrap());
 
 #[derive(Envconfig)]
 pub struct CacheConfig {
@@ -64,4 +65,10 @@ impl StorageConfig {
 pub(crate) struct UsersConfig {
     #[envconfig(from = "USERS_SESSION_TOKEN_LENGTH", default = "64")]
     pub session_token_length: u8,
+}
+
+#[derive(Envconfig)]
+pub struct YtDlpConfig {
+    #[envconfig(from = "YT_DLP_PROXY")]
+    pub proxy: Option<String>,
 }

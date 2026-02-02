@@ -1,9 +1,10 @@
+use std::borrow::Cow;
 use std::str::FromStr;
 
-use chrono::{NaiveDate, TimeDelta};
+use chrono::{NaiveDate, TimeDelta, Utc};
 use reqwest::StatusCode;
 
-use trailers_core::enums::TitleMediaType;
+use trailers_core::enums::{TitleMediaType, VideoSource, VideoType};
 use trailers_core::models::Title;
 use trailers_core::{commands, enums::TitleCrewJob};
 
@@ -253,6 +254,7 @@ async fn populate_title_extras(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>])
     let _ = populate_title_cast_and_crew(title).await;
     let _ = populate_title_genres(title, tmdb_genres).await;
     let _ = populate_title_keywords(title).await;
+    let _ = populate_videos(title).await;
 
     Ok(())
 }
@@ -283,6 +285,43 @@ async fn populate_title_keywords(title: &Title<'_>) -> anyhow::Result<()> {
         };
 
         let _ = commands::insert_title_keyword(title, &keyword).await;
+    }
+
+    Ok(())
+}
+
+pub async fn populate_videos(title: &Title<'_>) -> anyhow::Result<()> {
+    let tmdb = Tmdb::new();
+
+    let tmdb_videos = match title.media_type {
+        TitleMediaType::Series => tmdb.tv_videos(title.tmdb_id).await?,
+        _ => tmdb.movie_videos(title.tmdb_id).await?,
+    };
+
+    for tmdb_video in tmdb_videos.results {
+        if ![Cow::Borrowed("Teaser"), Cow::Borrowed("Trailer")].contains(&tmdb_video.r#type)
+            || tmdb_video.site != "YouTube"
+        {
+            continue;
+        }
+
+        let video_type = if tmdb_video.r#type == "Teaser" {
+            VideoType::Teaser
+        } else {
+            VideoType::Trailer
+        };
+
+        let _ = commands::insert_video(
+            title,
+            &tmdb_video.id,
+            VideoSource::Youtube,
+            &tmdb_video.key,
+            &tmdb_video.name,
+            video_type,
+            &tmdb_video.iso_639_1,
+            tmdb_video.published_at.unwrap_or(Utc::now()),
+        )
+        .await;
     }
 
     Ok(())

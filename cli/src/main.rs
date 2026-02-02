@@ -15,7 +15,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum CliCommand {
     GraphqlSchema,
-    PopulateTitles {
+    Populate {
         #[arg(short, long, required = false)]
         start_date: Option<NaiveDate>,
         #[arg(short, long, required = false)]
@@ -33,10 +33,10 @@ async fn main() {
 
             println!("{}", graphql_schema.sdl());
         }
-        CliCommand::PopulateTitles { start_date, end_date } => {
-            println!("Pushing job to populate titles...");
+        CliCommand::Populate { start_date, end_date } => {
+            println!("Pushing job to populate database...");
 
-            jobs_storage().await.push_populate_titles(*start_date, *end_date).await;
+            jobs_storage().await.push_populate(*start_date, *end_date).await;
 
             println!("Done!");
         }

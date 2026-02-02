@@ -16,7 +16,7 @@ pub struct NewUserJob {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct PopulateTitlesJob {
+pub struct PopulateJob {
     pub start_date: Option<NaiveDate>,
     pub end_date: Option<NaiveDate>,
 }

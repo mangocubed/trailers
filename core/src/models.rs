@@ -23,6 +23,16 @@ pub struct Genre<'a> {
 
 pub type Keyword<'a> = Genre<'a>;
 
+pub struct Person<'a> {
+    pub id: Uuid,
+    pub tmdb_id: i32,
+    pub tmdb_profile_path: Option<String>,
+    pub imdb_id: Option<String>,
+    pub name: Cow<'a, str>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Session<'a> {
     pub id: Uuid,

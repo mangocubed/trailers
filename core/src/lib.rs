@@ -21,7 +21,7 @@ pub mod jobs;
 pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
-use crate::jobs::{NewSessionJob, NewUserJob, PopulateTitlesJob};
+use crate::jobs::{NewSessionJob, NewUserJob, PopulateJob};
 use crate::models::{Session, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
@@ -52,7 +52,7 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
 pub struct JobsStorage {
     pub new_session: RedisStorage<NewSessionJob>,
     pub new_user: RedisStorage<NewUserJob>,
-    pub populate_titles: RedisStorage<PopulateTitlesJob>,
+    pub populate: RedisStorage<PopulateJob>,
 }
 
 impl JobsStorage {
@@ -60,7 +60,7 @@ impl JobsStorage {
         Self {
             new_session: Self::storage().await,
             new_user: Self::storage().await,
-            populate_titles: Self::storage().await,
+            populate: Self::storage().await,
         }
     }
 
@@ -91,10 +91,10 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
-    pub async fn push_populate_titles(&self, start_date: Option<NaiveDate>, end_date: Option<NaiveDate>) {
-        self.populate_titles
+    pub async fn push_populate(&self, start_date: Option<NaiveDate>, end_date: Option<NaiveDate>) {
+        self.populate
             .clone()
-            .push(PopulateTitlesJob { start_date, end_date })
+            .push(PopulateJob { start_date, end_date })
             .await
             .expect("Could not store job");
     }

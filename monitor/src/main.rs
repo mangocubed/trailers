@@ -56,18 +56,18 @@ async fn main() {
             .build(handlers::new_user)
     };
 
-    let populate_titles_worker = |index| {
-        WorkerBuilder::new(format!("populate-titles-{index}"))
-            .backend(jobs_storage.populate_titles.clone())
+    let populate_worker = |index| {
+        WorkerBuilder::new(format!("populate-{index}"))
+            .backend(jobs_storage.populate.clone())
             .enable_tracing()
-            .build(handlers::populate_titles)
+            .build(handlers::populate)
     };
 
     Monitor::new()
         .register(daily_worker)
         .register(new_session_worker)
         .register(new_user_worker)
-        .register(populate_titles_worker)
+        .register(populate_worker)
         .shutdown_timeout(Duration::from_millis(10000))
         .run_with_signal(async {
             info!("Monitor started");

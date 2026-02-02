@@ -100,6 +100,56 @@ pub async fn populate_movies(end_date: Option<NaiveDate>, start_date: Option<Nai
     Ok(())
 }
 
+pub async fn populate_persons(end_date: Option<NaiveDate>, start_date: Option<NaiveDate>) -> anyhow::Result<()> {
+    let mut page = 1;
+    let mut total_pages = 1;
+    let tmdb = Tmdb::new();
+
+    while page <= total_pages {
+        let tmdb_changes = tmdb.person_changes(page, end_date, start_date).await?;
+
+        for tmdb_changes_item in tmdb_changes.results {
+            if tmdb_changes_item.adult.is_none() {
+                continue;
+            }
+
+            let Some(tmdb_person_id) = tmdb_changes_item.id else {
+                continue;
+            };
+
+            let tmdb_person_result = tmdb.person(tmdb_person_id).await;
+
+            match tmdb_person_result {
+                Ok(tmdb_person) => {
+                    let _ = commands::insert_or_update_person(
+                        tmdb_person.id,
+                        tmdb_person.profile_path.as_deref(),
+                        tmdb_person.imdb_id.as_deref(),
+                        &tmdb_person.name,
+                    )
+                    .await;
+                }
+                Err(error) => {
+                    if error.status() == Some(StatusCode::NOT_FOUND)
+                        && let Ok(person) = commands::get_person_by_tmdb_id(tmdb_person_id).await
+                    {
+                        let _ = commands::delete_person(&person).await;
+                    }
+                }
+            }
+        }
+
+        total_pages = if tmdb_changes.total_pages <= 500 {
+            tmdb_changes.total_pages
+        } else {
+            500
+        };
+        page += 1;
+    }
+
+    Ok(())
+}
+
 pub async fn populate_series(end_date: Option<NaiveDate>, start_date: Option<NaiveDate>) -> anyhow::Result<()> {
     let mut page = 1;
     let mut total_pages = 1;

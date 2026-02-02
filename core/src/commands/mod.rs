@@ -15,10 +15,12 @@ use crate::config::CACHE_CONFIG;
 
 mod genre_commands;
 mod keyword_commands;
+mod person_commands;
 mod session_commands;
 mod title_commands;
 mod user_commands;
 
+pub use person_commands::*;
 pub use genre_commands::*;
 pub use keyword_commands::*;
 pub use session_commands::*;

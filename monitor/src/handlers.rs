@@ -3,13 +3,16 @@ use apalis_cron::Tick;
 
 use tracing::info;
 use trailers_core::commands;
-use trailers_core::jobs::{NewSessionJob, NewUserJob, PopulateTitlesJob};
+use trailers_core::jobs::{NewSessionJob, NewUserJob, PopulateJob};
 
 use crate::ip_geo::IpGeo;
 use crate::mailer::{admin_emails, send_new_session_email, send_welcome_email};
-use crate::populate::{populate_movies, populate_series};
+use crate::populate::{populate_movies, populate_persons, populate_series};
 
 pub async fn daily(_tick: Tick) -> Result<(), BoxDynError> {
+    info!("Populating persons...");
+    let _ = populate_persons(None, None).await;
+
     info!("Populating Movies...");
     let _ = populate_movies(None, None).await;
 
@@ -54,7 +57,8 @@ pub async fn new_user(job: NewUserJob) -> Result<(), BoxDynError> {
     send_welcome_email(&user).await
 }
 
-pub async fn populate_titles(job: PopulateTitlesJob) -> Result<(), BoxDynError> {
+pub async fn populate(job: PopulateJob) -> Result<(), BoxDynError> {
+    populate_persons(job.end_date, job.start_date).await?;
     populate_movies(job.end_date, job.start_date).await?;
     populate_series(job.end_date, job.start_date).await?;
 

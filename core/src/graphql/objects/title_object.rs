@@ -1,15 +1,16 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
-use async_graphql::{ID, Object};
+use async_graphql::{Context, ID, Object};
 use chrono::{DateTime, NaiveDate, TimeDelta, Utc};
 use url::Url;
 use uuid::Uuid;
 
 use crate::commands;
 use crate::enums::TitleMediaType;
+use crate::graphql::CustomContext;
 use crate::models::Title;
 use crate::pagination::CursorParams;
 
-use super::{GenreObject, KeywordObject, TitleCastObject, TitleCrewObject};
+use super::{GenreObject, KeywordObject, TitleCastObject, TitleCrewObject, UserTitleTieObject};
 
 pub struct TitleObject<'a>(pub Title<'a>);
 
@@ -148,6 +149,15 @@ impl TitleObject<'_> {
             },
         )
         .await
+    }
+
+    async fn current_user_tie(&self, ctx: &Context<'_>) -> Option<UserTitleTieObject> {
+        let user = ctx.user_opt()?;
+
+        commands::get_user_title_tie(&user, &self.0)
+            .await
+            .map(UserTitleTieObject)
+            .ok()
     }
 
     async fn released_on(&self) -> Option<NaiveDate> {

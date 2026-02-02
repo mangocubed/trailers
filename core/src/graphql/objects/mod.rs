@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use url::Url;
 
 use crate::enums::TitleCrewJob;
-use crate::models::{Genre, Keyword, Person, Session, TitleCast, TitleCrew, User};
+use crate::models::{Genre, Keyword, Person, Session, TitleCast, TitleCrew, User, UserTitleTie};
 use crate::{Info, commands};
 
 mod title_object;
@@ -187,6 +187,39 @@ impl UserObject<'_> {
 
     async fn initials(&self) -> String {
         self.0.initials()
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
+pub struct UserTitleTieObject(pub UserTitleTie);
+
+#[Object]
+impl UserTitleTieObject {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn title(&self) -> Result<TitleObject<'_>> {
+        Ok(self.0.title().await.map(TitleObject)?)
+    }
+
+    async fn is_bookmarked(&self) -> bool {
+        self.0.bookmarked_at.is_some()
+    }
+
+    async fn is_liked(&self) -> bool {
+        self.0.liked_at.is_some()
+    }
+
+    async fn is_watched(&self) -> bool {
+        self.0.watched_at.is_some()
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

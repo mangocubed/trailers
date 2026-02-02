@@ -220,6 +220,26 @@ impl User<'_> {
     }
 }
 
+pub struct UserTitleTie {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub title_id: Uuid,
+    pub bookmarked_at: Option<DateTime<Utc>>,
+    pub bookmarked_video_id: Option<Uuid>,
+    pub liked_at: Option<DateTime<Utc>>,
+    pub liked_video_id: Option<Uuid>,
+    pub watched_at: Option<DateTime<Utc>>,
+    pub watched_video_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl UserTitleTie {
+    pub async fn title(&self) -> sqlx::Result<Title<'_>> {
+        commands::get_title_by_id(self.title_id, None).await
+    }
+}
+
 pub struct Video<'a> {
     pub id: Uuid,
     pub title_id: Uuid,

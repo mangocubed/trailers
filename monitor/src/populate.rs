@@ -179,6 +179,7 @@ pub async fn populate_series(end_date: Option<NaiveDate>, start_date: Option<Nai
 
 async fn populate_title_extras(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>]) -> anyhow::Result<()> {
     let _ = populate_title_genres(title, tmdb_genres).await;
+    let _ = populate_title_keywords(title).await;
 
     Ok(())
 }
@@ -190,6 +191,25 @@ async fn populate_title_genres(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>])
         };
 
         let _ = commands::insert_title_genre(title, &genre).await;
+    }
+
+    Ok(())
+}
+
+pub async fn populate_title_keywords(title: &Title<'_>) -> anyhow::Result<()> {
+    let tmdb = Tmdb::new();
+
+    let tmdb_keywords = match title.media_type {
+        TitleMediaType::Series => tmdb.tv_keywords(title.tmdb_id).await?,
+        _ => tmdb.movie_keywords(title.tmdb_id).await?,
+    };
+
+    for tmdb_keyword in tmdb_keywords.keywords() {
+        let Ok(keyword) = commands::insert_keyword(tmdb_keyword.id, &tmdb_keyword.name).await else {
+            continue;
+        };
+
+        let _ = commands::insert_title_keyword(title, &keyword).await;
     }
 
     Ok(())

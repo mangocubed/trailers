@@ -21,6 +21,8 @@ pub struct Genre<'a> {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+pub type Keyword<'a> = Genre<'a>;
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Session<'a> {
     pub id: Uuid,

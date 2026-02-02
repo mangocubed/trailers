@@ -19,8 +19,8 @@ CREATE TABLE title_genres (
     created_at timestamptz NOT NULL DEFAULT current_timestamp,
     updated_at timestamptz NULL,
     CONSTRAINT pkey_titles_genres PRIMARY KEY (id),
-    CONSTRAINT fkey_title_genres_to_titles FOREIGN KEY (title_id) REFERENCES titles (id),
-    CONSTRAINT fkey_title_genres_to_genres FOREIGN KEY (genre_id) REFERENCES genres (id)
+    CONSTRAINT fkey_title_genres_to_titles FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
+    CONSTRAINT fkey_title_genres_to_genres FOREIGN KEY (genre_id) REFERENCES genres (id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX index_title_genres_on_title_id_genre_id ON title_genres USING btree (title_id, genre_id);

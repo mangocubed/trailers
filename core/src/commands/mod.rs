@@ -23,6 +23,7 @@ mod title_crew_commands;
 mod user_commands;
 mod user_title_tie_commands;
 mod video_commands;
+mod video_view_commands;
 
 pub use genre_commands::*;
 pub use keyword_commands::*;
@@ -34,6 +35,7 @@ pub use title_crew_commands::*;
 pub use user_commands::*;
 pub use user_title_tie_commands::*;
 pub use video_commands::*;
+pub use video_view_commands::*;
 
 async fn async_redis_cache<K, V>(prefix: &str) -> AsyncRedisCache<K, V>
 where

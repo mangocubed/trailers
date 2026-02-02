@@ -13,6 +13,14 @@ use crate::commands;
 use crate::config::STORAGE_CONFIG;
 use crate::enums::TitleMediaType;
 
+pub struct Genre<'a> {
+    pub id: Uuid,
+    pub tmdb_id: i32,
+    pub name: Cow<'a, str>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Session<'a> {
     pub id: Uuid,

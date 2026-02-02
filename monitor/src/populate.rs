@@ -5,8 +5,9 @@ use reqwest::StatusCode;
 
 use trailers_core::commands;
 use trailers_core::enums::TitleMediaType;
+use trailers_core::models::Title;
 
-use crate::tmdb::Tmdb;
+use crate::tmdb::{Tmdb, TmdbGenre};
 
 pub async fn populate_movies(end_date: Option<NaiveDate>, start_date: Option<NaiveDate>) -> anyhow::Result<()> {
     let mut page = 1;
@@ -54,7 +55,7 @@ pub async fn populate_movies(end_date: Option<NaiveDate>, start_date: Option<Nai
                         .as_deref()
                         .map(|image_path| Tmdb::image_url(image_path));
 
-                    let _result = commands::insert_or_update_title(
+                    let result = commands::insert_or_update_title(
                         media_type,
                         tmdb_movie.id,
                         tmdb_movie.backdrop_path.as_deref(),
@@ -70,6 +71,10 @@ pub async fn populate_movies(end_date: Option<NaiveDate>, start_date: Option<Nai
                         release_date,
                     )
                     .await;
+
+                    if let Ok(title) = result {
+                        let _ = populate_title_extras(&title, &tmdb_movie.genres).await;
+                    }
                 }
 
                 Err(error) => {
@@ -129,7 +134,7 @@ pub async fn populate_series(end_date: Option<NaiveDate>, start_date: Option<Nai
                         .as_deref()
                         .map(|image_path| Tmdb::image_url(image_path));
 
-                    let _result = commands::insert_or_update_title(
+                    let result = commands::insert_or_update_title(
                         TitleMediaType::Series,
                         tmdb_tv.id,
                         tmdb_tv.backdrop_path.as_deref(),
@@ -145,6 +150,10 @@ pub async fn populate_series(end_date: Option<NaiveDate>, start_date: Option<Nai
                         first_air_date,
                     )
                     .await;
+
+                    if let Ok(title) = result {
+                        let _ = populate_title_extras(&title, &tmdb_tv.genres).await;
+                    }
                 }
 
                 Err(error) => {
@@ -163,6 +172,24 @@ pub async fn populate_series(end_date: Option<NaiveDate>, start_date: Option<Nai
             500
         };
         page += 1;
+    }
+
+    Ok(())
+}
+
+async fn populate_title_extras(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>]) -> anyhow::Result<()> {
+    let _ = populate_title_genres(title, tmdb_genres).await;
+
+    Ok(())
+}
+
+async fn populate_title_genres(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>]) -> anyhow::Result<()> {
+    for tmdb_genre in tmdb_genres {
+        let Ok(genre) = commands::insert_genre(tmdb_genre.id, &tmdb_genre.name).await else {
+            continue;
+        };
+
+        let _ = commands::insert_title_genre(title, &genre).await;
     }
 
     Ok(())

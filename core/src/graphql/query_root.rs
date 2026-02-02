@@ -1,5 +1,5 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
-use async_graphql::{Context, ID, Object, Result};
+use async_graphql::{Context, ID, Object};
 use uuid::Uuid;
 
 use crate::graphql::objects::{InfoObject, TitleObject, UserObject};
@@ -19,10 +19,11 @@ impl QueryRoot {
         InfoObject(Info::default())
     }
 
-    async fn title(&self, id: ID) -> Result<TitleObject<'_>> {
-        Ok(commands::get_title_by_id(id.try_into_uuid()?, None)
+    async fn title(&self, id: ID) -> Option<TitleObject<'_>> {
+        commands::get_title_by_id(id.try_into_uuid().ok()?, None)
             .await
-            .map(TitleObject)?)
+            .map(TitleObject)
+            .ok()
     }
 
     async fn titles(

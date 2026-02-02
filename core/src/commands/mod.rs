@@ -13,10 +13,12 @@ use url::Url;
 
 use crate::config::CACHE_CONFIG;
 
+mod genre_commands;
 mod session_commands;
 mod title_commands;
 mod user_commands;
 
+pub use genre_commands::*;
 pub use session_commands::*;
 pub use title_commands::*;
 pub use user_commands::*;

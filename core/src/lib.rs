@@ -2,24 +2,26 @@ use std::net::IpAddr;
 
 use apalis::prelude::TaskSink;
 use apalis_redis::RedisStorage;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tokio::sync::OnceCell;
 
 mod constants;
+mod pagination;
 
 #[cfg(feature = "graphql")]
 pub mod graphql;
 
 pub mod commands;
 pub mod config;
+pub mod enums;
 pub mod jobs;
 pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
-use crate::jobs::{NewSessionJob, NewUserJob};
+use crate::jobs::{NewSessionJob, NewUserJob, PopulateTitlesJob};
 use crate::models::{Session, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
@@ -50,6 +52,7 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
 pub struct JobsStorage {
     pub new_session: RedisStorage<NewSessionJob>,
     pub new_user: RedisStorage<NewUserJob>,
+    pub populate_titles: RedisStorage<PopulateTitlesJob>,
 }
 
 impl JobsStorage {
@@ -57,6 +60,7 @@ impl JobsStorage {
         Self {
             new_session: Self::storage().await,
             new_user: Self::storage().await,
+            populate_titles: Self::storage().await,
         }
     }
 
@@ -83,6 +87,14 @@ impl JobsStorage {
         self.new_user
             .clone()
             .push(NewUserJob { user_id: user.id })
+            .await
+            .expect("Could not store job");
+    }
+
+    pub async fn push_populate_titles(&self, start_date: Option<NaiveDate>, end_date: Option<NaiveDate>) {
+        self.populate_titles
+            .clone()
+            .push(PopulateTitlesJob { start_date, end_date })
             .await
             .expect("Could not store job");
     }

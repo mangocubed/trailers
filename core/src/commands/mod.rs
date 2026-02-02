@@ -1,4 +1,7 @@
 use std::fmt::Display;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 
 use cached::async_sync::OnceCell;
 use cached::{AsyncRedisCache, IOCachedAsync};
@@ -6,13 +9,16 @@ use rand::distr::Alphanumeric;
 use rand::{Rng, rng};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use url::Url;
 
 use crate::config::CACHE_CONFIG;
 
 mod session_commands;
+mod title_commands;
 mod user_commands;
 
 pub use session_commands::*;
+pub use title_commands::*;
 pub use user_commands::*;
 
 async fn async_redis_cache<K, V>(prefix: &str) -> AsyncRedisCache<K, V>
@@ -45,6 +51,16 @@ where
             .cache_remove(key)
             .await;
     }
+}
+
+async fn download_file(source_url: Url, dest_path: PathBuf) -> anyhow::Result<()> {
+    let bytes = reqwest::get(source_url).await?.bytes().await?;
+
+    let mut file = File::create(dest_path)?;
+
+    file.write_all(&bytes)?;
+
+    Ok(())
 }
 
 fn generate_random_string(length: u8) -> String {

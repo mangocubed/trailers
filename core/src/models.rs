@@ -1,12 +1,17 @@
 use std::borrow::Cow;
 use std::fmt::Display;
+use std::path::PathBuf;
 
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::types::PgInterval;
+use url::Url;
 use uuid::Uuid;
 
 use crate::commands;
+use crate::config::STORAGE_CONFIG;
+use crate::enums::TitleMediaType;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Session<'a> {
@@ -51,6 +56,64 @@ impl Session<'_> {
 
     pub async fn user(&self) -> sqlx::Result<User<'_>> {
         commands::get_user_by_id(self.user_id).await
+    }
+}
+
+pub struct Title<'a> {
+    pub id: Uuid,
+    pub media_type: TitleMediaType,
+    pub tmdb_id: i32,
+    pub tmdb_backdrop_path: Option<String>,
+    pub tmdb_poster_path: Option<String>,
+    pub imdb_id: Option<String>,
+    pub name: Cow<'a, str>,
+    pub overview: Cow<'a, str>,
+    pub language: Cow<'a, str>,
+    pub runtime: Option<PgInterval>,
+    pub is_adult: bool,
+    pub released_on: Option<NaiveDate>,
+    pub search_rank: Option<f32>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Title<'_> {
+    pub fn backdrop_path(&self) -> Option<PathBuf> {
+        if self.tmdb_backdrop_path.is_some() {
+            Some(STORAGE_CONFIG.path.join(format!("title_backdrops/{}.jpg", self.id)))
+        } else {
+            None
+        }
+    }
+
+    pub fn backdrop_url(&self) -> Option<Url> {
+        if self.tmdb_backdrop_path.is_some() {
+            STORAGE_CONFIG
+                .url()
+                .join(&format!("title_backdrops/{}.jpg", self.id))
+                .ok()
+        } else {
+            None
+        }
+    }
+
+    pub fn poster_path(&self) -> Option<PathBuf> {
+        if self.tmdb_poster_path.is_some() {
+            Some(STORAGE_CONFIG.path.join(format!("title_posters/{}.jpg", self.id)))
+        } else {
+            None
+        }
+    }
+
+    pub fn poster_url(&self) -> Option<Url> {
+        if self.tmdb_poster_path.is_some() {
+            STORAGE_CONFIG
+                .url()
+                .join(&format!("title_posters/{}.jpg", self.id))
+                .ok()
+        } else {
+            None
+        }
     }
 }
 

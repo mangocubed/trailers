@@ -1,5 +1,8 @@
+use chrono::NaiveDate;
 use clap::{Parser, Subcommand};
+
 use trailers_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
+use trailers_core::jobs_storage;
 
 #[derive(Parser)]
 #[command(version)]
@@ -12,6 +15,12 @@ struct Cli {
 #[derive(Subcommand)]
 enum CliCommand {
     GraphqlSchema,
+    PopulateTitles {
+        #[arg(short, long, required = false)]
+        start_date: Option<NaiveDate>,
+        #[arg(short, long, required = false)]
+        end_date: Option<NaiveDate>,
+    },
 }
 
 #[tokio::main]
@@ -23,6 +32,13 @@ async fn main() {
             let graphql_schema = GraphqlSchema::builder().finish();
 
             println!("{}", graphql_schema.sdl());
+        }
+        CliCommand::PopulateTitles { start_date, end_date } => {
+            println!("Pushing job to populate titles...");
+
+            jobs_storage().await.push_populate_titles(*start_date, *end_date).await;
+
+            println!("Done!");
         }
     }
 }

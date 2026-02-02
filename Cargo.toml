@@ -10,9 +10,12 @@ homepage = "https://trailers.mango3.app"
 repository = "https://github.com/mangocubed/trailers"
 
 [workspace.dependencies]
+anyhow = "1.0.100"
 apalis = "1.0.0-rc.3"
 async-graphql = "8.0.0-rc.1"
+chrono = { version = "0.4.43", features = ["serde"] }
 envconfig = "0.11.1"
+reqwest = { version = "0.13.1", features = ["json"] }
 serde = "1.0.228"
 tokio = { version = "1.49.0", features = [
     "macros",
@@ -21,4 +24,6 @@ tokio = { version = "1.49.0", features = [
 ] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+url = "2.5.8"
 trailers-core = { path = "./core", default-features = false }
+trailers-monitor.path = "./monitor"

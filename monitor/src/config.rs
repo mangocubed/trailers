@@ -4,6 +4,7 @@ use envconfig::Envconfig;
 
 pub static MAILER_CONFIG: LazyLock<MailerConfig> = LazyLock::new(|| MailerConfig::init_from_env().unwrap());
 pub static IP_GEO_CONFIG: LazyLock<IpGeoConfig> = LazyLock::new(|| IpGeoConfig::init_from_env().unwrap());
+pub static TMDB_CONFIG: LazyLock<TmdbConfig> = LazyLock::new(|| TmdbConfig::init_from_env().unwrap());
 
 #[derive(Envconfig)]
 pub struct IpGeoConfig {
@@ -15,7 +16,7 @@ pub struct IpGeoConfig {
 pub struct MailerConfig {
     #[envconfig(from = "MAILER_ENABLE", default = "false")]
     pub enable: bool,
-    #[envconfig(from = "MAILER_SENDER_ADDRESS", default = "no-reply@localhost")]
+    #[envconfig(from = "MAILER_SENDER_ADDRESS", default = "Mango³ <no-reply@localhost>")]
     pub sender_address: String,
     #[envconfig(from = "MAILER_SMTP_ADDRESS", default = "localhost")]
     pub smtp_address: String,
@@ -27,4 +28,10 @@ pub struct MailerConfig {
     pub smtp_username: String,
     #[envconfig(from = "MAILER_SUPPORT_EMAIL_ADDRESS", default = "support@localhost")]
     pub support_email_address: String,
+}
+
+#[derive(Envconfig)]
+pub struct TmdbConfig {
+    #[envconfig(from = "TMDB_API_KEY", default = "")]
+    pub api_key: String,
 }

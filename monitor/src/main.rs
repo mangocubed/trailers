@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use apalis::layers::WorkerBuilderExt;
 use apalis::prelude::{Monitor, WorkerBuilder};
+use apalis_cron::CronStream;
+use apalis_cron::builder::schedule;
 use tokio::signal::unix::SignalKind;
 use tracing::{Level, info};
 
@@ -9,7 +11,10 @@ use trailers_core::jobs_storage;
 
 mod config;
 mod handlers;
+mod ip_geo;
 mod mailer;
+mod populate;
+mod tmdb;
 
 #[tokio::main]
 async fn main() {
@@ -28,6 +33,15 @@ async fn main() {
 
     let jobs_storage = jobs_storage().await;
 
+    let daily_worker = |index| {
+        let daily_schedule = schedule().each().day().at("0:00").build();
+
+        WorkerBuilder::new(format!("daily-{index}"))
+            .backend(CronStream::new(daily_schedule))
+            .enable_tracing()
+            .build(handlers::daily)
+    };
+
     let new_session_worker = |index| {
         WorkerBuilder::new(format!("new-session-{index}"))
             .backend(jobs_storage.new_session.clone())
@@ -42,9 +56,18 @@ async fn main() {
             .build(handlers::new_user)
     };
 
+    let populate_titles_worker = |index| {
+        WorkerBuilder::new(format!("populate-titles-{index}"))
+            .backend(jobs_storage.populate_titles.clone())
+            .enable_tracing()
+            .build(handlers::populate_titles)
+    };
+
     Monitor::new()
+        .register(daily_worker)
         .register(new_session_worker)
         .register(new_user_worker)
+        .register(populate_titles_worker)
         .shutdown_timeout(Duration::from_millis(10000))
         .run_with_signal(async {
             info!("Monitor started");

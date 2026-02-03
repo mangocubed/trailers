@@ -15,8 +15,13 @@ pub struct NewUserJob {
     pub user_id: Uuid,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Default, Deserialize, Serialize)]
 pub struct PopulateJob {
     pub start_date: Option<NaiveDate>,
     pub end_date: Option<NaiveDate>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct VideoRecommendationsJob {
+    pub user_id: Uuid,
 }

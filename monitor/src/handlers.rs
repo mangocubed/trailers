@@ -10,16 +10,7 @@ use crate::mailer::{admin_emails, send_new_session_email, send_welcome_email};
 use crate::populate::{populate_movies, populate_persons, populate_series};
 
 pub async fn daily(_tick: Tick) -> Result<(), BoxDynError> {
-    info!("Populating persons...");
-    let _ = populate_persons(None, None).await;
-
-    info!("Populating Movies...");
-    let _ = populate_movies(None, None).await;
-
-    info!("Populating Series...");
-    let _ = populate_series(None, None).await;
-
-    info!("Done!");
+    populate(PopulateJob::default()).await?;
 
     Ok(())
 }
@@ -58,9 +49,16 @@ pub async fn new_user(job: NewUserJob) -> Result<(), BoxDynError> {
 }
 
 pub async fn populate(job: PopulateJob) -> Result<(), BoxDynError> {
-    populate_persons(job.end_date, job.start_date).await?;
-    populate_movies(job.end_date, job.start_date).await?;
-    populate_series(job.end_date, job.start_date).await?;
+    info!("Populating Movies...");
+    let _ = populate_movies(&job).await;
+
+    info!("Populating Series...");
+    let _ = populate_series(&job).await;
+
+    info!("Populating persons...");
+    let _ = populate_persons(&job).await;
+
+    info!("Done!");
 
     Ok(())
 }

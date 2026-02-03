@@ -1,5 +1,7 @@
-use crate::db_pool;
+use chrono::Utc;
+
 use crate::models::{Title, User, UserTitleTie, Video};
+use crate::{db_pool, jobs_storage};
 
 pub async fn get_or_insert_user_title_tie(user: &User<'_>, title: &Title<'_>) -> sqlx::Result<UserTitleTie> {
     let db_pool = db_pool().await;
@@ -29,66 +31,87 @@ pub async fn get_user_title_tie(user: &User<'_>, title: &Title<'_>) -> sqlx::Res
 
 pub async fn update_user_title_tie_bookmark(
     user_title_tie: &UserTitleTie,
-    is_active: bool,
+    is_checked: bool,
     video: Option<&Video<'_>>,
-) -> sqlx::Result<()> {
+) -> sqlx::Result<UserTitleTie> {
     let db_pool = db_pool().await;
-    let video_id = if is_active { video.map(|v| v.id) } else { None };
+    let (bookmarked_at, bookmarked_video_id) = if is_checked {
+        (Some(Utc::now()), video.map(|v| v.id))
+    } else {
+        (None, None)
+    };
 
-    sqlx::query!(
-        "UPDATE user_title_ties
-        SET bookmarked_at = CASE WHEN $2 IS TRUE THEN current_timestamp ELSE NULL END, bookmarked_video_id = $3
-        WHERE id = $1",
-        user_title_tie.id, // $1
-        is_active,         // $2
-        video_id,          // $3
+    let user_title_tie = sqlx::query_as!(
+        UserTitleTie,
+        "UPDATE user_title_ties SET bookmarked_at = $2, bookmarked_video_id = $3 WHERE id = $1 RETURNING *",
+        user_title_tie.id,   // $1
+        bookmarked_at,       // $2
+        bookmarked_video_id, // $3
     )
-    .execute(db_pool)
+    .fetch_one(db_pool)
     .await?;
 
-    Ok(())
+    if let Ok(user) = user_title_tie.user().await {
+        jobs_storage().await.push_video_recommendations(&user).await;
+    }
+
+    Ok(user_title_tie)
 }
 
 pub async fn update_user_title_tie_like(
     user_title_tie: &UserTitleTie,
-    is_active: bool,
+    is_checked: bool,
     video: Option<&Video<'_>>,
-) -> sqlx::Result<()> {
+) -> sqlx::Result<UserTitleTie> {
     let db_pool = db_pool().await;
-    let video_id = if is_active { video.map(|v| v.id) } else { None };
+    let (liked_at, liked_video_id) = if is_checked {
+        (Some(Utc::now()), video.map(|v| v.id))
+    } else {
+        (None, None)
+    };
 
-    sqlx::query!(
-        "UPDATE user_title_ties
-        SET liked_at = CASE WHEN $2 IS TRUE THEN current_timestamp ELSE NULL END, liked_video_id = $3
-        WHERE id = $1",
+    let user_title_tie = sqlx::query_as!(
+        UserTitleTie,
+        "UPDATE user_title_ties SET liked_at = $2, liked_video_id = $3 WHERE id = $1 RETURNING *",
         user_title_tie.id, // $1
-        is_active,         // $2
-        video_id,          // $3
+        liked_at,          // $2
+        liked_video_id,    // $3
     )
-    .execute(db_pool)
+    .fetch_one(db_pool)
     .await?;
 
-    Ok(())
+    if let Ok(user) = user_title_tie.user().await {
+        jobs_storage().await.push_video_recommendations(&user).await;
+    }
+
+    Ok(user_title_tie)
 }
 
 pub async fn update_user_title_tie_watched(
     user_title_tie: &UserTitleTie,
-    is_active: bool,
+    is_checked: bool,
     video: Option<&Video<'_>>,
-) -> sqlx::Result<()> {
+) -> sqlx::Result<UserTitleTie> {
     let db_pool = db_pool().await;
-    let video_id = if is_active { video.map(|v| v.id) } else { None };
+    let (watched_at, watched_video_id) = if is_checked {
+        (Some(Utc::now()), video.map(|v| v.id))
+    } else {
+        (None, None)
+    };
 
-    sqlx::query!(
-        "UPDATE user_title_ties
-        SET watched_at = CASE WHEN $2 IS TRUE THEN current_timestamp ELSE NULL END, watched_video_id = $3
-        WHERE id = $1",
+    let user_title_tie = sqlx::query_as!(
+        UserTitleTie,
+        "UPDATE user_title_ties SET watched_at = $2, watched_video_id = $3 WHERE id = $1 RETURNING *",
         user_title_tie.id, // $1
-        is_active,         // $2
-        video_id,          // $3
+        watched_at,        // $2
+        watched_video_id,  // $3
     )
-    .execute(db_pool)
+    .fetch_one(db_pool)
     .await?;
 
-    Ok(())
+    if let Ok(user) = user_title_tie.user().await {
+        jobs_storage().await.push_video_recommendations(&user).await;
+    }
+
+    Ok(user_title_tie)
 }

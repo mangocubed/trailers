@@ -5,7 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::commands;
-use crate::enums::TitleMediaType;
+use crate::enums::{TitleCrewJob, TitleMediaType};
 use crate::graphql::CustomContext;
 use crate::models::Title;
 use crate::pagination::CursorParams;
@@ -49,47 +49,61 @@ impl TitleObject<'_> {
 
     async fn cast(
         &self,
-        after: Option<String>,
+        after: Option<Uuid>,
         first: Option<i32>,
     ) -> async_graphql::Result<Connection<Uuid, TitleCastObject<'_>, EmptyFields, EmptyFields>> {
-        query(after, None, first, None, |after, _before, first, _last| async move {
-            let first = first.map(|v| v as u8).unwrap_or(10);
-            let cursor_page = commands::paginate_title_cast(&CursorParams { after, first }, Some(&self.0)).await;
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let cursor_page = commands::paginate_title_cast(&CursorParams { after, first }, Some(&self.0)).await;
 
-            let mut connection = Connection::new(false, cursor_page.has_next_page);
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
 
-            connection.edges.extend(
-                cursor_page
-                    .nodes
-                    .into_iter()
-                    .map(|title_cast| Edge::new(title_cast.id, TitleCastObject(title_cast))),
-            );
+                connection.edges.extend(
+                    cursor_page
+                        .nodes
+                        .into_iter()
+                        .map(|title_cast| Edge::new(title_cast.id, TitleCastObject(title_cast))),
+                );
 
-            Ok::<_, async_graphql::Error>(connection)
-        })
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
         .await
     }
 
     async fn crew(
         &self,
-        after: Option<String>,
+        after: Option<Uuid>,
         first: Option<i32>,
+        jobs: Option<Vec<TitleCrewJob>>,
     ) -> async_graphql::Result<Connection<Uuid, TitleCrewObject<'_>, EmptyFields, EmptyFields>> {
-        query(after, None, first, None, |after, _before, first, _last| async move {
-            let first = first.map(|v| v as u8).unwrap_or(10);
-            let cursor_page = commands::paginate_title_crew(&CursorParams { after, first }, Some(&self.0)).await;
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let cursor_page =
+                    commands::paginate_title_crew(&CursorParams { after, first }, Some(&self.0), jobs).await;
 
-            let mut connection = Connection::new(false, cursor_page.has_next_page);
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
 
-            connection.edges.extend(
-                cursor_page
-                    .nodes
-                    .into_iter()
-                    .map(|title_crew| Edge::new(title_crew.id, TitleCrewObject(title_crew))),
-            );
+                connection.edges.extend(
+                    cursor_page
+                        .nodes
+                        .into_iter()
+                        .map(|title_crew| Edge::new(title_crew.id, TitleCrewObject(title_crew))),
+                );
 
-            Ok::<_, async_graphql::Error>(connection)
-        })
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
         .await
     }
 

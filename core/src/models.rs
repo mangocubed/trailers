@@ -36,7 +36,11 @@ pub struct Person<'a> {
 impl Person<'_> {
     pub fn profile_image_path(&self) -> Option<PathBuf> {
         if self.tmdb_profile_path.is_some() {
-            Some(STORAGE_CONFIG.path.join(format!("person_profiles/{}.jpg", self.id)))
+            Some(
+                STORAGE_CONFIG
+                    .path
+                    .join(format!("person_profiles/original/{}.jpg", self.id)),
+            )
         } else {
             None
         }
@@ -46,7 +50,7 @@ impl Person<'_> {
         if self.tmdb_profile_path.is_some() {
             STORAGE_CONFIG
                 .url()
-                .join(&format!("person_profiles/{}.jpg", self.id))
+                .join(&format!("person_profiles/original/{}.jpg", self.id))
                 .ok()
         } else {
             None
@@ -121,7 +125,11 @@ pub struct Title<'a> {
 impl Title<'_> {
     pub fn backdrop_image_path(&self) -> Option<PathBuf> {
         if self.tmdb_backdrop_path.is_some() {
-            Some(STORAGE_CONFIG.path.join(format!("title_backdrops/{}.jpg", self.id)))
+            Some(
+                STORAGE_CONFIG
+                    .path
+                    .join(format!("title_backdrops/original/{}.jpg", self.id)),
+            )
         } else {
             None
         }
@@ -131,7 +139,7 @@ impl Title<'_> {
         if self.tmdb_backdrop_path.is_some() {
             STORAGE_CONFIG
                 .url()
-                .join(&format!("title_backdrops/{}.jpg", self.id))
+                .join(&format!("title_backdrops/original/{}.jpg", self.id))
                 .ok()
         } else {
             None
@@ -140,7 +148,11 @@ impl Title<'_> {
 
     pub fn poster_image_path(&self) -> Option<PathBuf> {
         if self.tmdb_poster_path.is_some() {
-            Some(STORAGE_CONFIG.path.join(format!("title_posters/{}.jpg", self.id)))
+            Some(
+                STORAGE_CONFIG
+                    .path
+                    .join(format!("title_posters/original/{}.jpg", self.id)),
+            )
         } else {
             None
         }
@@ -150,7 +162,7 @@ impl Title<'_> {
         if self.tmdb_poster_path.is_some() {
             STORAGE_CONFIG
                 .url()
-                .join(&format!("title_posters/{}.jpg", self.id))
+                .join(&format!("title_posters/original/{}.jpg", self.id))
                 .ok()
         } else {
             None
@@ -238,6 +250,10 @@ impl UserTitleTie {
     pub async fn title(&self) -> sqlx::Result<Title<'_>> {
         commands::get_title_by_id(self.title_id, None).await
     }
+
+    pub async fn user(&self) -> sqlx::Result<User<'_>> {
+        commands::get_user_by_id(self.user_id).await
+    }
 }
 
 pub struct Video<'a> {
@@ -259,16 +275,17 @@ pub struct Video<'a> {
 
 impl Video<'_> {
     pub fn path(&self) -> PathBuf {
-        STORAGE_CONFIG.path.join(format!("videos/{}.mp4", self.id))
+        STORAGE_CONFIG.path.join(format!("videos/original/{}.mp4", self.id))
     }
 
-    pub async fn title(&self) -> Title<'_> {
-        commands::get_title_by_id(self.title_id, None)
-            .await
-            .expect("Could not get title")
+    pub async fn title(&self) -> sqlx::Result<Title<'_>> {
+        commands::get_title_by_id(self.title_id, None).await
     }
 
     pub fn url(&self) -> Url {
-        STORAGE_CONFIG.url().join(&format!("videos/{}.mp4", self.id)).unwrap()
+        STORAGE_CONFIG
+            .url()
+            .join(&format!("videos/original/{}.mp4", self.id))
+            .unwrap()
     }
 }

@@ -42,6 +42,7 @@ pub async fn insert_title_crew(
 pub async fn paginate_title_crew<'a>(
     cursor_params: &CursorParams,
     title: Option<&Title<'_>>,
+    jobs: Option<Vec<TitleCrewJob>>,
 ) -> CursorPage<TitleCrew<'a>> {
     let db_pool = db_pool().await;
 
@@ -62,11 +63,13 @@ pub async fn paginate_title_crew<'a>(
                 WHERE
                     ($1::uuid IS NULL OR $2::timestamptz IS NULL OR created_at < $2 OR (created_at = $2 AND id < $1))
                     AND ($3::uuid IS NULL OR title_id = $3)
-                ORDER BY created_at DESC, id DESC LIMIT $4"#,
+                    AND $4::title_crew_job[] IS NULL OR job = ANY($4)
+                ORDER BY created_at DESC, id DESC LIMIT $5"#,
                 cursor_id,         // $1
                 cursor_created_at, // $2
                 title_id,          // $3
-                limit              // $4
+                jobs as _,         // $4
+                limit              // $5
             )
             .fetch_all(db_pool)
             .await

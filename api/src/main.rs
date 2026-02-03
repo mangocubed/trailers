@@ -15,9 +15,11 @@ use axum_extra::headers::authorization::Bearer;
 use tokio::net::TcpListener;
 use tokio::try_join;
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
 
+use trailers_core::config::STORAGE_CONFIG;
 use trailers_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
 use trailers_core::{Info, commands};
 
@@ -115,13 +117,17 @@ async fn main() {
         .allow_methods([Method::GET, Method::POST, Method::POST])
         .allow_headers(Any);
 
-    let router = Router::new()
+    let mut router = Router::new()
         .route("/", get(get_index))
         .route("/graphql", post(post_graphql))
         .with_state(graphql_schema)
         .layer(cors_layer)
         .layer(TraceLayer::new_for_http())
         .layer(API_CONFIG.client_ip_source.clone().into_extension());
+
+    if STORAGE_CONFIG.serve {
+        router = router.nest_service("/storage", ServeDir::new(&STORAGE_CONFIG.path));
+    }
 
     let api_address = &API_CONFIG.address;
 

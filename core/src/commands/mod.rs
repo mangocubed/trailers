@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use cached::async_sync::OnceCell;
 use cached::{AsyncRedisCache, IOCachedAsync};
+use md5::{Digest, Md5};
 use rand::distr::Alphanumeric;
 use rand::{Rng, rng};
 use serde::Serialize;
@@ -23,6 +24,7 @@ mod title_crew_commands;
 mod user_commands;
 mod user_title_tie_commands;
 mod video_commands;
+mod video_recommendation_commands;
 mod video_view_commands;
 
 pub use genre_commands::*;
@@ -35,6 +37,7 @@ pub use title_crew_commands::*;
 pub use user_commands::*;
 pub use user_title_tie_commands::*;
 pub use video_commands::*;
+pub use video_recommendation_commands::*;
 pub use video_view_commands::*;
 
 async fn async_redis_cache<K, V>(prefix: &str) -> AsyncRedisCache<K, V>
@@ -70,7 +73,19 @@ where
 }
 
 async fn download_file(source_url: Url, dest_path: PathBuf) -> anyhow::Result<()> {
-    let bytes = reqwest::get(source_url).await?.bytes().await?;
+    let content = reqwest::get(source_url).await?.bytes().await?;
+
+    let md5_checksum = Md5::digest(&content);
+
+    if dest_path.exists()
+        && let Ok(existing_content) = std::fs::read(&dest_path)
+    {
+        let existing_md5_checksum = Md5::digest(&existing_content);
+
+        if existing_md5_checksum == md5_checksum {
+            return Ok(());
+        }
+    }
 
     if let Some(parent_dir) = dest_path.parent() {
         std::fs::create_dir_all(parent_dir)?;
@@ -78,7 +93,7 @@ async fn download_file(source_url: Url, dest_path: PathBuf) -> anyhow::Result<()
 
     let mut file = File::create(dest_path)?;
 
-    file.write_all(&bytes)?;
+    file.write_all(&content)?;
 
     Ok(())
 }

@@ -22,12 +22,13 @@ pub async fn delete_person(person: &Person<'_>) -> sqlx::Result<()> {
 pub async fn get_or_insert_person<'a>(
     tmdb_id: i32,
     tmdb_profile_path: Option<&str>,
+    tmdb_profile_url: Option<Url>,
     imdb_id: Option<&str>,
     name: &str,
 ) -> sqlx::Result<Person<'a>> {
     let db_pool = db_pool().await;
 
-    sqlx::query_as!(
+    let person = sqlx::query_as!(
         Person,
         "INSERT INTO persons (tmdb_id, tmdb_profile_path, imdb_id, name) VALUES ($1, $2, $3, $4)
         ON CONFLICT (tmdb_id) DO NOTHING RETURNING *",
@@ -37,7 +38,15 @@ pub async fn get_or_insert_person<'a>(
         name,              // $4
     )
     .fetch_one(db_pool)
-    .await
+    .await?;
+
+    if let Some(source_url) = tmdb_profile_url
+        && let Some(dest_url) = person.profile_image_path()
+    {
+        let _ = download_file(source_url, dest_url).await;
+    }
+
+    Ok(person)
 }
 
 pub async fn get_person_by_id<'a>(id: Uuid) -> sqlx::Result<Person<'a>> {

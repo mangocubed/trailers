@@ -171,11 +171,11 @@ pub async fn insert_or_update_title<'a>(
     Ok(title)
 }
 
-pub async fn paginate_titles<'a>(query: Option<String>, cursor_params: &CursorParams) -> CursorPage<Title<'a>> {
+pub async fn paginate_titles<'a>(cursor_params: CursorParams, query: Option<String>) -> CursorPage<Title<'a>> {
     let db_pool = db_pool().await;
 
     CursorPage::new(
-        cursor_params,
+        &cursor_params,
         |node: &Title| node.id,
         async |after| get_title_by_id(after, None).await.ok(),
         async |cursor_resource, limit| {

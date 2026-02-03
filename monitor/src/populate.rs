@@ -5,18 +5,19 @@ use chrono::{NaiveDate, TimeDelta, Utc};
 use reqwest::StatusCode;
 
 use trailers_core::enums::{TitleMediaType, VideoSource, VideoType};
+use trailers_core::jobs::PopulateJob;
 use trailers_core::models::Title;
 use trailers_core::{commands, enums::TitleCrewJob};
 
 use crate::tmdb::{Tmdb, TmdbGenre};
 
-pub async fn populate_movies(end_date: Option<NaiveDate>, start_date: Option<NaiveDate>) -> anyhow::Result<()> {
+pub async fn populate_movies(job: &PopulateJob) -> anyhow::Result<()> {
     let mut page = 1;
     let mut total_pages = 1;
     let tmdb = Tmdb::new();
 
     while page <= total_pages {
-        let tmdb_changes = tmdb.movie_changes(page, end_date, start_date).await?;
+        let tmdb_changes = tmdb.movie_changes(page, job.end_date, job.start_date).await?;
 
         for tmdb_changes_item in tmdb_changes.results {
             if tmdb_changes_item.adult.is_none() {
@@ -93,13 +94,13 @@ pub async fn populate_movies(end_date: Option<NaiveDate>, start_date: Option<Nai
     Ok(())
 }
 
-pub async fn populate_persons(end_date: Option<NaiveDate>, start_date: Option<NaiveDate>) -> anyhow::Result<()> {
+pub async fn populate_persons(job: &PopulateJob) -> anyhow::Result<()> {
     let mut page = 1;
     let mut total_pages = 1;
     let tmdb = Tmdb::new();
 
     while page <= total_pages {
-        let tmdb_changes = tmdb.person_changes(page, end_date, start_date).await?;
+        let tmdb_changes = tmdb.person_changes(page, job.end_date, job.start_date).await?;
 
         for tmdb_changes_item in tmdb_changes.results {
             if tmdb_changes_item.adult.is_none() {
@@ -144,13 +145,13 @@ pub async fn populate_persons(end_date: Option<NaiveDate>, start_date: Option<Na
     Ok(())
 }
 
-pub async fn populate_series(end_date: Option<NaiveDate>, start_date: Option<NaiveDate>) -> anyhow::Result<()> {
+pub async fn populate_series(job: &PopulateJob) -> anyhow::Result<()> {
     let mut page = 1;
     let mut total_pages = 1;
     let tmdb = Tmdb::new();
 
     while page <= total_pages {
-        let tmdb_changes = tmdb.tv_changes(page, end_date, start_date).await?;
+        let tmdb_changes = tmdb.tv_changes(page, job.end_date, job.start_date).await?;
 
         for tmdb_changes_item in tmdb_changes.results {
             if tmdb_changes_item.adult.is_none() {
@@ -222,9 +223,14 @@ async fn populate_title_cast_and_crew(title: &Title<'_>) -> anyhow::Result<()> {
     };
 
     for tmdb_cast in tmdb_credits.cast {
-        let Ok(person) =
-            commands::get_or_insert_person(tmdb_cast.id, tmdb_cast.profile_path.as_deref(), None, &tmdb_cast.name)
-                .await
+        let Ok(person) = commands::get_or_insert_person(
+            tmdb_cast.id,
+            tmdb_cast.profile_path.as_deref(),
+            tmdb_cast.profile_url(),
+            None,
+            &tmdb_cast.name,
+        )
+        .await
         else {
             continue;
         };
@@ -237,9 +243,14 @@ async fn populate_title_cast_and_crew(title: &Title<'_>) -> anyhow::Result<()> {
             continue;
         }
 
-        let Ok(person) =
-            commands::get_or_insert_person(tmdb_crew.id, tmdb_crew.profile_path.as_deref(), None, &tmdb_crew.name)
-                .await
+        let Ok(person) = commands::get_or_insert_person(
+            tmdb_crew.id,
+            tmdb_crew.profile_path.as_deref(),
+            tmdb_crew.profile_url(),
+            None,
+            &tmdb_crew.name,
+        )
+        .await
         else {
             continue;
         };

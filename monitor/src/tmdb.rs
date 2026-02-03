@@ -16,6 +16,14 @@ pub struct TmdbCast<'a> {
     pub character: String,
 }
 
+impl TmdbCast<'_> {
+    pub fn profile_url(&self) -> Option<Url> {
+        self.profile_path
+            .as_deref()
+            .map(|image_path| Tmdb::image_url(image_path))
+    }
+}
+
 #[derive(Deserialize)]
 pub struct TmdbChanges {
     pub results: Vec<TmdbChangesItem>,
@@ -43,6 +51,14 @@ pub struct TmdbCrew<'a> {
     pub name: Cow<'a, str>,
     pub profile_path: Option<Cow<'a, str>>,
     pub job: Cow<'a, str>,
+}
+
+impl TmdbCrew<'_> {
+    pub fn profile_url(&self) -> Option<Url> {
+        self.profile_path
+            .as_deref()
+            .map(|image_path| Tmdb::image_url(image_path))
+    }
 }
 
 #[derive(Deserialize, Clone)]

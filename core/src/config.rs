@@ -51,7 +51,7 @@ pub struct StorageConfig {
     pub path: PathBuf,
     #[envconfig(from = "STORAGE_SERVE", default = "true")]
     pub serve: bool,
-    #[envconfig(from = "STORAGE_BASE_URL", default = "http://localhost:8080")]
+    #[envconfig(from = "STORAGE_BASE_URL", default = "http://127.0.0.1:8000")]
     base_url: Url,
 }
 

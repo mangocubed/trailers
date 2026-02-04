@@ -63,11 +63,18 @@ async fn main() {
             .build(handlers::populate)
     };
 
+    let video_recommendations_worker = |index| {
+        WorkerBuilder::new(format!("video-recommendations-{index}"))
+        .backend(jobs_storage.video_recommendations.clone())
+        .enable_tracing()
+        .build_fn(video_recommendations_handler);
+
     Monitor::new()
         .register(daily_worker)
         .register(new_session_worker)
         .register(new_user_worker)
         .register(populate_worker)
+        .register(video_recommendations_worker)
         .shutdown_timeout(Duration::from_millis(10000))
         .run_with_signal(async {
             info!("Monitor started");

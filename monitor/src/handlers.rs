@@ -3,7 +3,7 @@ use apalis_cron::Tick;
 
 use tracing::info;
 use trailers_core::commands;
-use trailers_core::jobs::{NewSessionJob, NewUserJob, PopulateJob};
+use trailers_core::jobs::{NewSessionJob, NewUserJob, PopulateJob, VideoRecommendationsJob};
 
 use crate::ip_geo::IpGeo;
 use crate::mailer::{admin_emails, send_new_session_email, send_welcome_email};
@@ -59,6 +59,14 @@ pub async fn populate(job: PopulateJob) -> Result<(), BoxDynError> {
     let _ = populate_persons(&job).await;
 
     info!("Done!");
+
+    Ok(())
+}
+
+pub async fn video_recommendations_handler(job: VideoRecommendationsJob) -> Result<(), BoxDynError> {
+    let user = commands::get_user_by_id(job.user_id).await?;
+
+    commands::update_video_recommendations(&user).await?;
 
     Ok(())
 }

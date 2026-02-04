@@ -20,9 +20,7 @@ pub struct TmdbCast<'a> {
 
 impl TmdbCast<'_> {
     pub fn profile_url(&self) -> Option<Url> {
-        self.profile_path
-            .as_deref()
-            .map(|image_path| Tmdb::image_url(image_path))
+        self.profile_path.as_deref().map(Tmdb::image_url)
     }
 }
 
@@ -57,9 +55,7 @@ pub struct TmdbCrew<'a> {
 
 impl TmdbCrew<'_> {
     pub fn profile_url(&self) -> Option<Url> {
-        self.profile_path
-            .as_deref()
-            .map(|image_path| Tmdb::image_url(image_path))
+        self.profile_path.as_deref().map(Tmdb::image_url)
     }
 }
 
@@ -103,15 +99,11 @@ pub struct TmdbMovie<'a> {
 
 impl TmdbMovie<'_> {
     pub fn backdrop_url(&self) -> Option<Url> {
-        self.backdrop_path
-            .as_deref()
-            .map(|image_path| Tmdb::image_url(image_path))
+        self.backdrop_path.as_deref().map(Tmdb::image_url)
     }
 
     pub fn poster_url(&self) -> Option<Url> {
-        self.poster_path
-            .as_deref()
-            .map(|image_path| Tmdb::image_url(image_path))
+        self.poster_path.as_deref().map(Tmdb::image_url)
     }
 }
 
@@ -125,9 +117,7 @@ pub struct TmdbPerson<'a> {
 
 impl TmdbPerson<'_> {
     pub fn profile_url(&self) -> Option<Url> {
-        self.profile_path
-            .as_deref()
-            .map(|image_path| Tmdb::image_url(image_path))
+        self.profile_path.as_deref().map(Tmdb::image_url)
     }
 }
 
@@ -147,15 +137,11 @@ pub struct TmdbTV<'a> {
 
 impl TmdbTV<'_> {
     pub fn backdrop_url(&self) -> Option<Url> {
-        self.backdrop_path
-            .as_deref()
-            .map(|image_path| Tmdb::image_url(image_path))
+        self.backdrop_path.as_deref().map(Tmdb::image_url)
     }
 
     pub fn poster_url(&self) -> Option<Url> {
-        self.poster_path
-            .as_deref()
-            .map(|image_path| Tmdb::image_url(image_path))
+        self.poster_path.as_deref().map(Tmdb::image_url)
     }
 }
 
@@ -184,7 +170,7 @@ pub struct TmdbWatchProvider<'a> {
 
 impl TmdbWatchProvider<'_> {
     pub fn logo_url(&self) -> Option<Url> {
-        self.logo_path.as_deref().map(|image_path| Tmdb::image_url(image_path))
+        self.logo_path.as_deref().map(Tmdb::image_url)
     }
 }
 

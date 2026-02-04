@@ -60,7 +60,7 @@ impl QueryRoot {
         let video = commands::get_video_by_id(id.try_into_uuid().ok()?, user).await.ok()?;
 
         if let Some(user) = user {
-            let _ = commands::insert_video_view(&video, &user).await;
+            let _ = commands::insert_video_view(&video, user).await;
         }
 
         Some(VideoObject(video))

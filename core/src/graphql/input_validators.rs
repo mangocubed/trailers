@@ -90,7 +90,7 @@ impl CustomValidator<String> for UsernameValidator {
         if block_on(user_username_exists(value)) {
             Err(input_value_error("username", "Already exists"))
         } else {
-            return Ok(());
+            Ok(())
         }
     }
 }

@@ -46,19 +46,10 @@ pub(crate) struct MonitorConfig {
 
 #[derive(Envconfig)]
 pub struct StorageConfig {
-    #[cfg_attr(not(test), envconfig(from = "STORAGE_PATH", default = "./storage/"))]
-    #[cfg_attr(test, envconfig(from = "STORAGE_PATH", default = "./storage/tests/"))]
+    #[envconfig(from = "STORAGE_PATH", default = "./storage/")]
     pub path: PathBuf,
-    #[envconfig(from = "STORAGE_SERVE", default = "true")]
-    pub serve: bool,
-    #[envconfig(from = "STORAGE_BASE_URL", default = "http://127.0.0.1:8000")]
-    base_url: Url,
-}
-
-impl StorageConfig {
-    pub fn url(&self) -> Url {
-        self.base_url.join("storage/").unwrap()
-    }
+    #[envconfig(from = "STORAGE_URL", default = "http://127.0.0.1:8000/storage/")]
+    pub url: Url,
 }
 
 #[derive(Envconfig)]

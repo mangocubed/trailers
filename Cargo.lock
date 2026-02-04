@@ -140,9 +140,9 @@ dependencies = [
 
 [[package]]
 name = "apalis-cron"
-version = "1.0.0-rc.2"
+version = "1.0.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56f0eeb8ae0f072e3b25777687226963aef99ee23c9eacd6739be938c3457af2"
+checksum = "ae9ce66f3e0fec3bf745a7114f3b1d67348eeb151025765538ca9ddb67954849"
 dependencies = [
  "apalis-core",
  "chrono",

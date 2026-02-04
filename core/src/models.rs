@@ -49,7 +49,7 @@ impl Person<'_> {
     pub fn profile_image_url(&self) -> Option<Url> {
         if self.tmdb_profile_path.is_some() {
             STORAGE_CONFIG
-                .url()
+                .url
                 .join(&format!("person_profiles/original/{}.jpg", self.id))
                 .ok()
         } else {
@@ -138,7 +138,7 @@ impl Title<'_> {
     pub fn backdrop_image_url(&self) -> Option<Url> {
         if self.tmdb_backdrop_path.is_some() {
             STORAGE_CONFIG
-                .url()
+                .url
                 .join(&format!("title_backdrops/original/{}.jpg", self.id))
                 .ok()
         } else {
@@ -161,7 +161,7 @@ impl Title<'_> {
     pub fn poster_image_url(&self) -> Option<Url> {
         if self.tmdb_poster_path.is_some() {
             STORAGE_CONFIG
-                .url()
+                .url
                 .join(&format!("title_posters/original/{}.jpg", self.id))
                 .ok()
         } else {
@@ -294,7 +294,7 @@ impl Video<'_> {
 
     pub fn url(&self) -> Url {
         STORAGE_CONFIG
-            .url()
+            .url
             .join(&format!("videos/original/{}.mp4", self.id))
             .unwrap()
     }
@@ -330,7 +330,7 @@ impl WatchProvider<'_> {
     pub fn logo_image_url(&self) -> Option<Url> {
         if self.tmdb_logo_path.is_some() {
             STORAGE_CONFIG
-                .url()
+                .url
                 .join(&format!("watch_provider_logos/original/{}.jpg", self.id))
                 .ok()
         } else {

@@ -47,7 +47,7 @@ pub async fn populate_movies(job: &PopulateJob) -> anyhow::Result<()> {
                     let release_date = tmdb_movie
                         .release_date
                         .as_ref()
-                        .and_then(|value| NaiveDate::from_str(&value).ok());
+                        .and_then(|value| NaiveDate::from_str(value).ok());
 
                     let result = commands::insert_or_update_title(
                         media_type,
@@ -169,7 +169,7 @@ pub async fn populate_series(job: &PopulateJob) -> anyhow::Result<()> {
                     let first_air_date = tmdb_tv
                         .first_air_date
                         .as_ref()
-                        .and_then(|value| NaiveDate::from_str(&value).ok());
+                        .and_then(|value| NaiveDate::from_str(value).ok());
 
                     let result = commands::insert_or_update_title(
                         TitleMediaType::Series,

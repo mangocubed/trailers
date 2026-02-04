@@ -12,17 +12,13 @@ pub struct ApiConfig {
     pub address: SocketAddr,
     #[envconfig(from = "API_CLIENT_IP_SOURCE", default = "ConnectInfo")]
     pub client_ip_source: ClientIpSource,
-    #[envconfig(from = "API_OLD_TOKENS", default = "")]
-    old_tokens: String,
+    #[envconfig(from = "API_SERVE_STORAGE", default = "true")]
+    pub serve_storage: bool,
     #[envconfig(from = "API_TOKENS", default = "trailers")]
     tokens: String,
 }
 
 impl ApiConfig {
-    pub fn old_tokens(&self) -> Vec<&str> {
-        self.old_tokens.split(',').map(|token| token.trim()).collect()
-    }
-
     pub fn tokens(&self) -> Vec<&str> {
         self.tokens.split(',').map(|token| token.trim()).collect()
     }

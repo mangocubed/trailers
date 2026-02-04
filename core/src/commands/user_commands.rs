@@ -13,9 +13,9 @@ use crate::{db_pool, jobs_storage};
 use super::async_redis_cache;
 
 pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &str) -> sqlx::Result<User<'a>> {
-    let user = get_user_by_username_or_email(&username_or_email).await?;
+    let user = get_user_by_username_or_email(username_or_email).await?;
 
-    if user.verify_password(&password) {
+    if user.verify_password(password) {
         Ok(user)
     } else {
         Err(sqlx::Error::RowNotFound)

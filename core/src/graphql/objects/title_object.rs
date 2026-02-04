@@ -41,10 +41,7 @@ impl TitleObject<'_> {
     }
 
     async fn runtime(&self) -> Option<TimeDelta> {
-        self.0
-            .runtime
-            .clone()
-            .map(|value| TimeDelta::microseconds(value.microseconds))
+        self.0.runtime.map(|value| TimeDelta::microseconds(value.microseconds))
     }
 
     async fn cast(
@@ -229,7 +226,7 @@ impl TitleObject<'_> {
     async fn current_user_tie(&self, ctx: &Context<'_>) -> Option<UserTitleTieObject> {
         let user = ctx.user_opt()?;
 
-        commands::get_user_title_tie(&user, &self.0)
+        commands::get_user_title_tie(user, &self.0)
             .await
             .map(UserTitleTieObject)
             .ok()

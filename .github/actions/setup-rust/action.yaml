@@ -17,4 +17,4 @@ runs:
           run: cargo binstall -y sqlx-cli@0.8.6
         - name: Run database migrations
           shell: bash
-          run: sqlx database setup --database-url postgres://mango3:mango3@127.0.0.1:5432/trailers_dev
+          run: sqlx database setup

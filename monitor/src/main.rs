@@ -67,7 +67,7 @@ async fn main() {
         WorkerBuilder::new(format!("video-recommendations-{index}"))
             .backend(jobs_storage.video_recommendations.clone())
             .enable_tracing()
-            .build(video_recommendations_handler)
+            .build(handlers::video_recommendations_handler)
     };
 
     Monitor::new()

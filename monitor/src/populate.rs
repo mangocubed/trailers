@@ -265,6 +265,7 @@ async fn populate_title_extras(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>])
     let _ = populate_title_cast_and_crew(title).await;
     let _ = populate_title_genres(title, tmdb_genres).await;
     let _ = populate_title_keywords(title).await;
+    let _ = populate_title_watch_providers(title).await;
     let _ = populate_videos(title).await;
 
     Ok(())
@@ -296,6 +297,55 @@ async fn populate_title_keywords(title: &Title<'_>) -> anyhow::Result<()> {
         };
 
         let _ = commands::insert_title_keyword(title, &keyword).await;
+    }
+
+    Ok(())
+}
+
+pub async fn populate_title_watch_providers(title: &Title<'_>) -> anyhow::Result<()> {
+    let tmdb = Tmdb::new();
+
+    let results = match title.media_type {
+        TitleMediaType::Series => tmdb.tv_watch_providers(title.tmdb_id).await?.results,
+        _ => tmdb.movie_watch_providers(title.tmdb_id).await?.results,
+    };
+
+    for result in &results {
+        let mut tmdb_watch_providers = result.1.flatrate.clone().unwrap_or_default();
+
+        tmdb_watch_providers.append(&mut result.1.ads.clone().unwrap_or_default());
+
+        for tmdb_watch_provider in tmdb_watch_providers {
+            let Ok(watch_provider) = commands::get_or_insert_watch_provider(
+                tmdb_watch_provider.provider_id,
+                &tmdb_watch_provider.provider_name,
+                tmdb_watch_provider.logo_path.as_deref(),
+                tmdb_watch_provider.logo_url(),
+            )
+            .await
+            else {
+                continue;
+            };
+
+            let mut country_codes = results
+                .clone()
+                .into_iter()
+                .filter(|r| {
+                    let mut tmdb_watch_providers = r.1.flatrate.clone().unwrap_or_default();
+
+                    tmdb_watch_providers.append(&mut r.1.ads.clone().unwrap_or_default());
+
+                    tmdb_watch_providers
+                        .into_iter()
+                        .any(|twp| twp.provider_id == tmdb_watch_provider.provider_id)
+                })
+                .map(|r| r.0.to_string())
+                .collect::<Vec<_>>();
+
+            country_codes.sort();
+
+            let _ = commands::insert_or_update_title_watch_provider(title, &watch_provider, &country_codes).await;
+        }
     }
 
     Ok(())

@@ -10,7 +10,7 @@ use crate::graphql::CustomContext;
 use crate::models::Title;
 use crate::pagination::CursorParams;
 
-use super::{GenreObject, KeywordObject, TitleCastObject, TitleCrewObject, UserTitleTieObject};
+use super::*;
 
 pub struct TitleObject<'a>(pub Title<'a>);
 
@@ -59,7 +59,7 @@ impl TitleObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_title_cast(&CursorParams { after, first }, Some(&self.0)).await;
+                let cursor_page = commands::paginate_title_cast(&CursorParams { after, first }, &self.0).await;
 
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
@@ -89,8 +89,7 @@ impl TitleObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page =
-                    commands::paginate_title_crew(&CursorParams { after, first }, Some(&self.0), jobs).await;
+                let cursor_page = commands::paginate_title_crew(&CursorParams { after, first }, &self.0, jobs).await;
 
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
@@ -158,6 +157,68 @@ impl TitleObject<'_> {
                         .into_iter()
                         .map(|keyword| Edge::new(keyword.id, KeywordObject(keyword))),
                 );
+
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
+    }
+
+    async fn videos(
+        &self,
+        after: Option<Uuid>,
+        first: Option<i32>,
+    ) -> async_graphql::Result<Connection<Uuid, VideoObject<'_>, EmptyFields, EmptyFields>> {
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let cursor_page =
+                    commands::paginate_videos(CursorParams { after, first }, None, Some(&self.0), Some(true), None)
+                        .await;
+
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
+
+                connection.edges.extend(
+                    cursor_page
+                        .nodes
+                        .into_iter()
+                        .map(|video| Edge::new(video.id, VideoObject(video))),
+                );
+
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
+    }
+
+    async fn watch_providers(
+        &self,
+        after: Option<Uuid>,
+        first: Option<i32>,
+        country_code: Option<String>,
+    ) -> async_graphql::Result<Connection<Uuid, TitleWatchProviderObject, EmptyFields, EmptyFields>> {
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let page =
+                    commands::paginate_title_watch_providers(&CursorParams { after, first }, &self.0, country_code)
+                        .await;
+
+                let mut connection = Connection::new(false, page.has_next_page);
+
+                connection
+                    .edges
+                    .extend(page.nodes.into_iter().map(|title_watch_provider| {
+                        Edge::new(title_watch_provider.id, TitleWatchProviderObject(title_watch_provider))
+                    }));
 
                 Ok::<_, async_graphql::Error>(connection)
             },

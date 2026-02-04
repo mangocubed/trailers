@@ -198,29 +198,27 @@ pub async fn paginate_videos<'a>(
                     v1.updated_at
                 FROM videos AS v1, video_recommendations AS vr
                 WHERE
-                    v1.downloaded_at IS NOT NULL
+                    v1.downloaded_at IS NOT NULL AND vr.user_id = $4
                     AND v1.id = vr.video_id AND (
                         $1::uuid IS NULL OR $2::bigint IS NULL OR $3::timestamptz IS NULL
                         OR relevance < $2 OR (relevance = $2 AND published_at < $3)
                         OR (published_at = $3 AND v1.id < $1)
                     ) AND (
-                        $4::uuid IS NULL OR $6 IS TRUE OR (
-                            user_id = $4 AND (
-                                SELECT vv.id FROM video_views AS vv
-                                WHERE
-                                    vv.user_id = $4 AND (
-                                        vv.video_id = v1.id OR (
-                                            vv.created_at > current_timestamp - INTERVAL '1 hour'
-                                            AND (
-                                                SELECT v2.id FROM videos AS v2
-                                                WHERE v2.id = vv.video_id AND v2.title_id = v1.title_id
-                                                LIMIT 1
-                                            ) IS NOT NULL
-                                        )
+                        $6 IS TRUE OR (
+                            SELECT vv.id FROM video_views AS vv
+                            WHERE
+                                vv.user_id = $4 AND (
+                                    vv.video_id = v1.id OR (
+                                        vv.created_at > current_timestamp - INTERVAL '1 hour'
+                                        AND (
+                                            SELECT v2.id FROM videos AS v2
+                                            WHERE v2.id = vv.video_id AND v2.title_id = v1.title_id
+                                            LIMIT 1
+                                        ) IS NOT NULL
                                     )
-                                LIMIT 1
-                            ) IS NULL
-                        )
+                                )
+                            LIMIT 1
+                        ) IS NULL
                     ) AND ($5::uuid IS NULL OR title_id = $5)
                     AND (
                         $7 IS TRUE OR (

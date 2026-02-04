@@ -37,10 +37,7 @@ pub async fn insert_title_cast(
     Ok(())
 }
 
-pub async fn paginate_title_cast<'a>(
-    cursor_params: &CursorParams,
-    title: Option<&Title<'_>>,
-) -> CursorPage<TitleCast<'a>> {
+pub async fn paginate_title_cast<'a>(cursor_params: &CursorParams, title: &Title<'_>) -> CursorPage<TitleCast<'a>> {
     let db_pool = db_pool().await;
 
     CursorPage::new(
@@ -51,18 +48,17 @@ pub async fn paginate_title_cast<'a>(
             let (cursor_id, cursor_character_name) = cursor_resource
                 .map(|r| (Some(r.id), Some(r.character_name)))
                 .unwrap_or_default();
-            let title_id = title.map(|t| t.id);
 
             sqlx::query_as!(
                 TitleCast,
                 "SELECT * FROM title_cast
                 WHERE
                     ($1::uuid IS NULL OR $2::text IS NULL OR character_name > $2 OR (character_name = $2 AND id > $1))
-                    AND ($3::uuid IS NULL OR title_id = $3)
+                    AND title_id = $3
                 ORDER BY character_name ASC, id ASC LIMIT $4",
                 cursor_id,                        // $1
                 cursor_character_name.as_deref(), // $2
-                title_id,                         // $3
+                title.id,                         // $3
                 limit                             // $4
             )
             .fetch_all(db_pool)

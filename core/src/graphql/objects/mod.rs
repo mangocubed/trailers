@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use url::Url;
 
 use crate::enums::TitleCrewJob;
-use crate::models::{Genre, Keyword, Person, Session, TitleCast, TitleCrew, User, UserTitleTie, Video};
+use crate::models::*;
 use crate::{Info, commands};
 
 mod title_object;
@@ -165,6 +165,33 @@ impl TitleCrewObject<'_> {
     }
 }
 
+pub struct TitleWatchProviderObject(pub TitleWatchProvider);
+
+#[Object]
+impl TitleWatchProviderObject {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn watch_provider<'a>(&self) -> Result<WatchProviderObject<'a>> {
+        Ok(commands::get_watch_provider_by_id(self.0.watch_provider_id)
+            .await
+            .map(WatchProviderObject)?)
+    }
+
+    async fn country_codes(&self) -> Vec<String> {
+        self.0.country_codes.clone()
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
 pub struct UserObject<'a>(pub User<'a>);
 
 #[Object]
@@ -187,6 +214,10 @@ impl UserObject<'_> {
 
     async fn initials(&self) -> String {
         self.0.initials()
+    }
+
+    async fn country_code(&self) -> &str {
+        &self.0.country_code
     }
 
     async fn created_at(&self) -> DateTime<Utc> {
@@ -245,6 +276,35 @@ impl VideoObject<'_> {
 
     async fn url(&self) -> Url {
         self.0.url()
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
+pub struct WatchProviderObject<'a>(pub WatchProvider<'a>);
+
+#[Object]
+impl WatchProviderObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn logo_image_url(&self) -> Option<Url> {
+        self.0.logo_image_url()
+    }
+
+    async fn name(&self) -> &str {
+        &self.0.name
+    }
+
+    async fn home_url(&self) -> Option<Url> {
+        self.0.home_url()
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

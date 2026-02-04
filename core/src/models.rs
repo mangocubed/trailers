@@ -190,6 +190,16 @@ pub struct TitleCrew<'a> {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Clone)]
+pub struct TitleWatchProvider {
+    pub id: Uuid,
+    pub title_id: Uuid,
+    pub watch_provider_id: Uuid,
+    pub country_codes: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct User<'a> {
     pub id: Uuid,
@@ -287,5 +297,44 @@ impl Video<'_> {
             .url()
             .join(&format!("videos/original/{}.mp4", self.id))
             .unwrap()
+    }
+}
+
+pub struct WatchProvider<'a> {
+    pub id: Uuid,
+    pub tmdb_id: i32,
+    pub tmdb_logo_path: Option<String>,
+    pub name: Cow<'a, str>,
+    pub home_url: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl WatchProvider<'_> {
+    pub fn home_url(&self) -> Option<Url> {
+        self.home_url.as_ref().and_then(|u| u.parse().ok())
+    }
+
+    pub fn logo_image_path(&self) -> Option<PathBuf> {
+        if self.tmdb_logo_path.is_some() {
+            Some(
+                STORAGE_CONFIG
+                    .path
+                    .join(format!("watch_provider_logos/original/{}.jpg", self.id)),
+            )
+        } else {
+            None
+        }
+    }
+
+    pub fn logo_image_url(&self) -> Option<Url> {
+        if self.tmdb_logo_path.is_some() {
+            STORAGE_CONFIG
+                .url()
+                .join(&format!("watch_provider_logos/original/{}.jpg", self.id))
+                .ok()
+        } else {
+            None
+        }
     }
 }

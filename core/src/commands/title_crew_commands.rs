@@ -41,7 +41,7 @@ pub async fn insert_title_crew(
 
 pub async fn paginate_title_crew<'a>(
     cursor_params: &CursorParams,
-    title: Option<&Title<'_>>,
+    title: &Title<'_>,
     jobs: Option<Vec<TitleCrewJob>>,
 ) -> CursorPage<TitleCrew<'a>> {
     let db_pool = db_pool().await;
@@ -54,7 +54,6 @@ pub async fn paginate_title_crew<'a>(
             let (cursor_id, cursor_created_at) = cursor_resource
                 .map(|r| (Some(r.id), Some(r.created_at)))
                 .unwrap_or_default();
-            let title_id = title.map(|t| t.id);
 
             sqlx::query_as!(
                 TitleCrew,
@@ -62,12 +61,11 @@ pub async fn paginate_title_crew<'a>(
                 FROM title_crew
                 WHERE
                     ($1::uuid IS NULL OR $2::timestamptz IS NULL OR created_at < $2 OR (created_at = $2 AND id < $1))
-                    AND ($3::uuid IS NULL OR title_id = $3)
-                    AND $4::title_crew_job[] IS NULL OR job = ANY($4)
+                    AND title_id = $3 AND $4::title_crew_job[] IS NULL OR job = ANY($4)
                 ORDER BY created_at DESC, id DESC LIMIT $5"#,
                 cursor_id,         // $1
                 cursor_created_at, // $2
-                title_id,          // $3
+                title.id,          // $3
                 jobs as _,         // $4
                 limit              // $5
             )

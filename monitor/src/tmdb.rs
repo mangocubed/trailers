@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::{borrow::Cow, sync::OnceLock};
 
 use chrono::{DateTime, Days, NaiveDate, Utc};
+use reqwest::Result;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use url::Url;
@@ -173,6 +175,30 @@ pub struct TmdbVideos<'a> {
     pub results: Vec<TmdbVideo<'a>>,
 }
 
+#[derive(Clone, Deserialize)]
+pub struct TmdbWatchProvider<'a> {
+    pub logo_path: Option<Cow<'a, str>>,
+    pub provider_id: i32,
+    pub provider_name: Cow<'a, str>,
+}
+
+impl TmdbWatchProvider<'_> {
+    pub fn logo_url(&self) -> Option<Url> {
+        self.logo_path.as_deref().map(|image_path| Tmdb::image_url(image_path))
+    }
+}
+
+#[derive(Clone, Deserialize)]
+pub struct TmdbWatchProviders<'a> {
+    pub ads: Option<Vec<TmdbWatchProvider<'a>>>,
+    pub flatrate: Option<Vec<TmdbWatchProvider<'a>>>,
+}
+
+#[derive(Deserialize)]
+pub struct TmdbWatchProvidersByCountry<'a> {
+    pub results: HashMap<Cow<'a, str>, TmdbWatchProviders<'a>>,
+}
+
 static TMDB: OnceLock<Tmdb> = OnceLock::new();
 
 pub struct Tmdb<'a> {
@@ -196,14 +222,14 @@ impl<'a> Tmdb<'a> {
         Url::parse(&format!("https://api.themoviedb.org/3/{}", path)).unwrap()
     }
 
-    pub async fn get<T>(&self, path: &str) -> reqwest::Result<T>
+    pub async fn get<T>(&self, path: &str) -> Result<T>
     where
         T: DeserializeOwned,
     {
         self.get_with_query(path, None).await
     }
 
-    pub async fn get_with_query<T>(&self, path: &str, query: Option<&str>) -> reqwest::Result<T>
+    pub async fn get_with_query<T>(&self, path: &str, query: Option<&str>) -> Result<T>
     where
         T: DeserializeOwned,
     {
@@ -239,7 +265,7 @@ impl<'a> Tmdb<'a> {
         Url::parse(&format!("https://image.tmdb.org/t/p/original/{image_path}")).unwrap()
     }
 
-    pub async fn movie(&self, id: i32) -> reqwest::Result<TmdbMovie<'_>> {
+    pub async fn movie(&self, id: i32) -> Result<TmdbMovie<'_>> {
         self.get(&format!("movie/{id}")).await
     }
 
@@ -248,24 +274,28 @@ impl<'a> Tmdb<'a> {
         page: usize,
         end_date: Option<NaiveDate>,
         start_date: Option<NaiveDate>,
-    ) -> reqwest::Result<TmdbChanges> {
+    ) -> Result<TmdbChanges> {
         self.get_with_query("movie/changes", Some(&self.changes_query(page, end_date, start_date)))
             .await
     }
 
-    pub async fn movie_credits(&self, id: i32) -> reqwest::Result<TmdbCredits<'_>> {
+    pub async fn movie_credits(&self, id: i32) -> Result<TmdbCredits<'_>> {
         self.get(&format!("movie/{id}/credits")).await
     }
 
-    pub async fn movie_keywords(&self, id: i32) -> reqwest::Result<TmdbKeywords<'_>> {
+    pub async fn movie_keywords(&self, id: i32) -> Result<TmdbKeywords<'_>> {
         self.get(&format!("movie/{id}/keywords")).await
     }
 
-    pub async fn movie_videos(&self, id: i32) -> reqwest::Result<TmdbVideos<'_>> {
+    pub async fn movie_videos(&self, id: i32) -> Result<TmdbVideos<'_>> {
         self.get(&format!("movie/{id}/videos")).await
     }
 
-    pub async fn person(&self, id: i32) -> reqwest::Result<TmdbPerson<'_>> {
+    pub async fn movie_watch_providers(&self, id: i32) -> Result<TmdbWatchProvidersByCountry<'_>> {
+        self.get(&format!("movie/{id}/watch/providers")).await
+    }
+
+    pub async fn person(&self, id: i32) -> Result<TmdbPerson<'_>> {
         self.get(&format!("person/{id}")).await
     }
 
@@ -274,12 +304,12 @@ impl<'a> Tmdb<'a> {
         page: usize,
         end_date: Option<NaiveDate>,
         start_date: Option<NaiveDate>,
-    ) -> reqwest::Result<TmdbChanges> {
+    ) -> Result<TmdbChanges> {
         self.get_with_query("person/changes", Some(&self.changes_query(page, end_date, start_date)))
             .await
     }
 
-    pub async fn tv(&self, id: i32) -> reqwest::Result<TmdbTV<'_>> {
+    pub async fn tv(&self, id: i32) -> Result<TmdbTV<'_>> {
         self.get(&format!("tv/{id}")).await
     }
 
@@ -288,20 +318,24 @@ impl<'a> Tmdb<'a> {
         page: usize,
         end_date: Option<NaiveDate>,
         start_date: Option<NaiveDate>,
-    ) -> reqwest::Result<TmdbChanges> {
+    ) -> Result<TmdbChanges> {
         self.get_with_query("tv/changes", Some(&self.changes_query(page, end_date, start_date)))
             .await
     }
 
-    pub async fn tv_credits(&self, id: i32) -> reqwest::Result<TmdbCredits<'_>> {
+    pub async fn tv_credits(&self, id: i32) -> Result<TmdbCredits<'_>> {
         self.get(&format!("tv/{id}/credits")).await
     }
 
-    pub async fn tv_keywords(&self, id: i32) -> reqwest::Result<TmdbKeywords<'_>> {
+    pub async fn tv_keywords(&self, id: i32) -> Result<TmdbKeywords<'_>> {
         self.get(&format!("tv/{id}/keywords")).await
     }
 
-    pub async fn tv_videos(&self, id: i32) -> reqwest::Result<TmdbVideos<'_>> {
+    pub async fn tv_videos(&self, id: i32) -> Result<TmdbVideos<'_>> {
         self.get(&format!("tv/{id}/videos")).await
+    }
+
+    pub async fn tv_watch_providers(&self, id: i32) -> Result<TmdbWatchProvidersByCountry<'_>> {
+        self.get(&format!("tv/{id}/watch/providers")).await
     }
 }

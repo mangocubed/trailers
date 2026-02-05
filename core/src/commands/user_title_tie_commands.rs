@@ -4,11 +4,15 @@ use crate::models::{Title, User, UserTitleTie, Video};
 use crate::{db_pool, jobs_storage};
 
 pub async fn get_or_insert_user_title_tie(user: &User<'_>, title: &Title<'_>) -> sqlx::Result<UserTitleTie> {
+    if let Ok(user_title_tie) = get_user_title_tie(user, title).await {
+        return Ok(user_title_tie);
+    }
+
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
         UserTitleTie,
-        "INSERT INTO user_title_ties (user_id, title_id) VALUES ($1, $2) ON CONFLICT (user_id, title_id) DO NOTHING RETURNING *",
+        "INSERT INTO user_title_ties (user_id, title_id) VALUES ($1, $2) RETURNING *",
         user.id,  // $1
         title.id, // $2
     )

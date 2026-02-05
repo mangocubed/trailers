@@ -26,12 +26,15 @@ pub async fn get_or_insert_person<'a>(
     imdb_id: Option<&str>,
     name: &str,
 ) -> sqlx::Result<Person<'a>> {
+    if let Ok(person) = get_person_by_tmdb_id(tmdb_id).await {
+        return Ok(person);
+    }
+
     let db_pool = db_pool().await;
 
     let person = sqlx::query_as!(
         Person,
-        "INSERT INTO persons (tmdb_id, tmdb_profile_path, imdb_id, name) VALUES ($1, $2, $3, $4)
-        ON CONFLICT (tmdb_id) DO NOTHING RETURNING *",
+        "INSERT INTO persons (tmdb_id, tmdb_profile_path, imdb_id, name) VALUES ($1, $2, $3, $4) RETURNING *",
         tmdb_id,           // $1
         tmdb_profile_path, // $2
         imdb_id,           // $3

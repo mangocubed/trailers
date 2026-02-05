@@ -16,12 +16,28 @@ pub async fn get_genre_by_id<'a>(id: Uuid) -> sqlx::Result<Genre<'a>> {
     .await
 }
 
-pub async fn insert_genre<'a>(tmdb_id: i32, name: &'a str) -> sqlx::Result<Genre<'a>> {
+async fn get_genre_by_tmdb_id<'a>(tmdb_id: i32) -> sqlx::Result<Genre<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
         Genre,
-        "INSERT INTO genres (tmdb_id, name) VALUES ($1, $2) ON CONFLICT (tmdb_id) DO NOTHING RETURNING *",
+        "SELECT * FROM genres WHERE tmdb_id = $1 LIMIT 1",
+        tmdb_id // $1
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+pub async fn get_or_insert_genre<'a>(tmdb_id: i32, name: &'a str) -> sqlx::Result<Genre<'a>> {
+    if let Ok(genre) = get_genre_by_tmdb_id(tmdb_id).await {
+        return Ok(genre);
+    }
+
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Genre,
+        "INSERT INTO genres (tmdb_id, name) VALUES ($1, $2) RETURNING *",
         tmdb_id, // $1
         name,    // $2
     )

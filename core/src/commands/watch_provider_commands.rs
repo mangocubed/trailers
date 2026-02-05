@@ -31,18 +31,33 @@ pub async fn get_watch_provider_by_id<'a>(id: Uuid) -> sqlx::Result<WatchProvide
     .await
 }
 
+pub async fn get_watch_provider_by_tmdb_id<'a>(tmdb_id: i32) -> sqlx::Result<WatchProvider<'a>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        WatchProvider,
+        "SELECT * FROM watch_providers WHERE tmdb_id = $1 LIMIT 1",
+        tmdb_id // $1
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
 pub async fn get_or_insert_watch_provider<'a>(
     tmdb_id: i32,
     name: &'a str,
     tmdb_logo_path: Option<&'a str>,
     tmdb_logo_url: Option<Url>,
 ) -> sqlx::Result<WatchProvider<'a>> {
+    if let Ok(watch_provider) = get_watch_provider_by_tmdb_id(tmdb_id).await {
+        return Ok(watch_provider);
+    }
+
     let db_pool = db_pool().await;
 
     let watch_provider = sqlx::query_as!(
         WatchProvider,
-        "INSERT INTO watch_providers (tmdb_id, name, tmdb_logo_path) VALUES ($1, $2, $3)
-        ON CONFLICT (tmdb_id) DO NOTHING RETURNING *",
+        "INSERT INTO watch_providers (tmdb_id, name, tmdb_logo_path) VALUES ($1, $2, $3) RETURNING *",
         tmdb_id,        // $1
         name,           // $2
         tmdb_logo_path  // $3

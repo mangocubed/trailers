@@ -273,7 +273,7 @@ async fn populate_title_extras(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>])
 
 async fn populate_title_genres(title: &Title<'_>, tmdb_genres: &[TmdbGenre<'_>]) -> anyhow::Result<()> {
     for tmdb_genre in tmdb_genres {
-        let Ok(genre) = commands::insert_genre(tmdb_genre.id, &tmdb_genre.name).await else {
+        let Ok(genre) = commands::get_or_insert_genre(tmdb_genre.id, &tmdb_genre.name).await else {
             continue;
         };
 
@@ -292,7 +292,7 @@ async fn populate_title_keywords(title: &Title<'_>) -> anyhow::Result<()> {
     };
 
     for tmdb_keyword in tmdb_keywords.keywords() {
-        let Ok(keyword) = commands::insert_keyword(tmdb_keyword.id, &tmdb_keyword.name).await else {
+        let Ok(keyword) = commands::get_or_insert_keyword(tmdb_keyword.id, &tmdb_keyword.name).await else {
             continue;
         };
 

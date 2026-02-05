@@ -62,7 +62,7 @@ pub async fn update_video_recommendations(user: &User<'_>) -> sqlx::Result<()> {
                         LIMIT 1
                     ) IS NULL
                     AND (SELECT is_adult FROM titles AS t WHERE t.id = v.title_id LIMIT 1) IS FALSE
-                ORDER BY title_id DESC, relevance DESC, published_at DESC
+                ORDER BY title_id DESC, relevance DESC, orientation::text DESC, published_at DESC
             ) AS sub
             ORDER BY relevance DESC
             ON CONFLICT (video_id, user_id)

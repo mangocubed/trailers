@@ -225,7 +225,7 @@ pub async fn paginate_videos<'a>(
                             SELECT is_adult FROM titles AS t WHERE t.id = v1.title_id LIMIT 1
                         ) IS FALSE
                     )
-                ORDER BY relevance DESC, published_at DESC, v1.id DESC LIMIT $8
+                ORDER BY relevance DESC, orientation::text DESC, published_at DESC, v1.id DESC LIMIT $8
             ) UNION ALL (
                 SELECT
                     id,
@@ -257,7 +257,7 @@ pub async fn paginate_videos<'a>(
                             SELECT is_adult FROM titles AS t WHERE t.id = v2.title_id LIMIT 1
                         ) IS FALSE
                     )
-                ORDER BY published_at DESC, id DESC LIMIT $8
+                ORDER BY orientation::text DESC, published_at DESC, id DESC LIMIT $8
             )) AS sub LIMIT $8"#,
                 cursor_id,           // $1
                 cursor_relevance,    // $2

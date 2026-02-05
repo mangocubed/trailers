@@ -61,7 +61,7 @@ pub async fn paginate_title_crew<'a>(
                 FROM title_crew
                 WHERE
                     ($1::uuid IS NULL OR $2::timestamptz IS NULL OR created_at < $2 OR (created_at = $2 AND id < $1))
-                    AND title_id = $3 AND $4::title_crew_job[] IS NULL OR job = ANY($4)
+                    AND title_id = $3 AND ($4::title_crew_job[] IS NULL OR job = ANY($4))
                 ORDER BY created_at DESC, id DESC LIMIT $5"#,
                 cursor_id,         // $1
                 cursor_created_at, // $2

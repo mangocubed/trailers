@@ -171,7 +171,11 @@ pub async fn insert_or_update_title<'a>(
     Ok(title)
 }
 
-pub async fn paginate_titles<'a>(cursor_params: CursorParams, query: Option<String>) -> CursorPage<Title<'a>> {
+pub async fn paginate_titles<'a>(
+    cursor_params: CursorParams,
+    query: Option<String>,
+    has_videos: Option<bool>,
+) -> CursorPage<Title<'a>> {
     let db_pool = db_pool().await;
 
     CursorPage::new(
@@ -204,7 +208,7 @@ pub async fn paginate_titles<'a>(cursor_params: CursorParams, query: Option<Stri
                     ELSE
                         NULL
                     END AS search_rank
-                FROM titles
+                FROM titles AS t
                 WHERE (
                         $1::uuid IS NULL OR $2::float4 IS NULL OR $3 IS NULL
                         OR ts_rank(search, websearch_to_tsquery($3)) < $2
@@ -212,12 +216,19 @@ pub async fn paginate_titles<'a>(cursor_params: CursorParams, query: Option<Stri
                     ) AND (
                         $3 IS NULL OR search @@ websearch_to_tsquery($3) OR name ILIKE '%'||$3||'%'
                         OR overview ILIKE '%'||$3||'%'
+                    ) AND (
+                        $4::bool IS NULL OR (
+                            $4 = TRUE AND (SELECT id FROM videos AS v WHERE title_id = t.id LIMIT 1) IS NOT NULL
+                        ) OR (
+                            $4 = FALSE AND (SELECT id FROM videos AS v WHERE title_id = t.id LIMIT 1) IS NULL
+                        )
                     )
-                ORDER BY search_rank DESC, id DESC LIMIT $4"#,
+                ORDER BY search_rank DESC, id DESC LIMIT $5"#,
                 cursor_id,          // $1
                 cursor_search_rank, // $2
                 query,              // $3
-                limit,              // $4
+                has_videos,         // $4
+                limit,              // $5
             )
             .fetch_all(db_pool)
             .await

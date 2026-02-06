@@ -9,8 +9,8 @@ pub async fn update_video_recommendations(user: &User<'_>) -> sqlx::Result<()> {
             WHERE
                 user_id = $1
                 AND (
-                    created_at > current_timestamp - INTERVAL '1 hour' OR (
-                        updated_at IS NOT NULL AND updated_at > current_timestamp - INTERVAL '1 hour'
+                    created_at > current_timestamp - INTERVAL '1 day' OR (
+                        updated_at IS NOT NULL AND updated_at > current_timestamp - INTERVAL '1 day'
                     )
                 )
             LIMIT 1",

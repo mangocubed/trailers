@@ -122,8 +122,18 @@ pub async fn insert_video<'a>(
         && let Ok(stdout) = String::from_utf8(output.stdout.clone())
     {
         let mut stdout_lines = stdout.lines();
-        let aspect_ratio = stdout_lines.next().and_then(|ar| ar.parse::<f32>().ok()).unwrap();
-        let duration_secs = stdout_lines.next().and_then(|dur| dur.parse::<u32>().ok()).unwrap();
+
+        let Some(Ok(aspect_ratio)) = stdout_lines.next().map(|ar| ar.parse::<f32>()) else {
+            delete_video(&video).await?;
+
+            return Err(anyhow::anyhow!("Failed to parse aspect ratio"));
+        };
+
+        let Some(Ok(duration_secs)) = stdout_lines.next().map(|dur| dur.parse::<u32>()) else {
+            delete_video(&video).await?;
+
+            return Err(anyhow::anyhow!("Failed to parse duration"));
+        };
 
         if duration_secs > 600 {
             delete_video(&video).await?;

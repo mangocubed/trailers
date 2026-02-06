@@ -66,6 +66,7 @@ async fn main() {
     let video_recommendations_worker = |index| {
         WorkerBuilder::new(format!("video-recommendations-{index}"))
             .backend(jobs_storage.video_recommendations.clone())
+            .concurrency(5)
             .enable_tracing()
             .build(handlers::video_recommendations_handler)
     };

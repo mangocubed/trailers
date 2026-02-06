@@ -31,6 +31,7 @@ impl QueryRoot {
         #[graphql(name = "query")] q: Option<String>,
         after: Option<Uuid>,
         first: Option<i32>,
+        has_videos: Option<bool>,
     ) -> async_graphql::Result<Connection<Uuid, TitleObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
@@ -39,7 +40,7 @@ impl QueryRoot {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_titles(CursorParams { after, first }, q).await;
+                let cursor_page = commands::paginate_titles(CursorParams { after, first }, q, has_videos).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(

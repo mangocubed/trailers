@@ -204,12 +204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ascii_utils"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71938f30533e4d95a6d17aa530939da3842c2ab6f4f84b9dae68447e4129f74a"
-
-[[package]]
 name = "askama"
 version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -257,22 +251,33 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-graphql"
-version = "8.0.0-rc.1"
+name = "async-channel"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be2734f2dc7a48a0a790e4ce34745d10f05edbc91fba6cfaaf114f40c6d58386"
+checksum = "924ed96dd52d1b75e9c1a3e6275715fd320f5f9439fb5a4a11fa51f4221158d2"
+dependencies = [
+ "concurrent-queue",
+ "event-listener-strategy",
+ "futures-core",
+ "pin-project-lite",
+]
+
+[[package]]
+name = "async-graphql"
+version = "8.0.0-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4d0206f56e5108dc54c80ac9bd096b6f10790ef943a6f05bb9e8f01b677058b"
 dependencies = [
  "askama",
  "async-graphql-derive",
  "async-graphql-parser",
  "async-graphql-value",
- "async-io",
  "async-trait",
  "asynk-strim",
  "base64",
+ "blocking",
  "bytes",
  "chrono",
- "fast_chemail",
  "futures-util",
  "http",
  "indexmap",
@@ -316,9 +321,9 @@ dependencies = [
 
 [[package]]
 name = "async-graphql-derive"
-version = "8.0.0-rc.1"
+version = "8.0.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72c68c1300fd9729ce5d16d0f98197fdf94f313c74ce0bbe8a69b66d59d5c82e"
+checksum = "d8969ebd1bdd5a9773e82148371dbb3eba5861c4df29881e4f71e4b37eb46792"
 dependencies = [
  "async-graphql-parser",
  "darling 0.23.0",
@@ -333,9 +338,9 @@ dependencies = [
 
 [[package]]
 name = "async-graphql-parser"
-version = "8.0.0-rc.1"
+version = "8.0.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5355231d8991ad3d0461e41e86222277726544a0922284136a936a7e84cb936e"
+checksum = "b2d595623816d47e413e36a6247afc9ffba93b5165f667d77a4ce162c524ab92"
 dependencies = [
  "async-graphql-value",
  "pest",
@@ -345,9 +350,9 @@ dependencies = [
 
 [[package]]
 name = "async-graphql-value"
-version = "8.0.0-rc.1"
+version = "8.0.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e42eefeed592a8650d42a50c4c9728c52ec12e85ff1139c052d40861edd69340"
+checksum = "6a4f7b4890346aedfee2efadf011b9f526825f1ffc0f895370e2716eab479e8d"
 dependencies = [
  "bytes",
  "indexmap",
@@ -356,22 +361,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-io"
-version = "2.6.0"
+name = "async-task"
+version = "4.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "456b8a8feb6f42d237746d4b3e9a178494627745c3c56c6ea55d92ba50d026fc"
-dependencies = [
- "autocfg",
- "cfg-if",
- "concurrent-queue",
- "futures-io",
- "futures-lite",
- "parking",
- "polling",
- "rustix",
- "slab",
- "windows-sys 0.61.2",
-]
+checksum = "8b75356056920673b02621b35afd0f7dda9306d03c79a30f5c56c44cf256e3de"
 
 [[package]]
 name = "async-trait"
@@ -571,6 +564,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
+]
+
+[[package]]
+name = "blocking"
+version = "1.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e83f8d02be6967315521be875afa792a316e28d57b5a2d401897e2a7921b7f21"
+dependencies = [
+ "async-channel",
+ "async-task",
+ "futures-io",
+ "futures-lite",
+ "piper",
 ]
 
 [[package]]
@@ -1129,12 +1135,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "fast_chemail"
-version = "0.9.6"
+name = "event-listener-strategy"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "495a39d30d624c2caabe6312bfead73e7717692b44e0b32df168c275a2e8e9e4"
+checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
 dependencies = [
- "ascii_utils",
+ "event-listener",
+ "pin-project-lite",
 ]
 
 [[package]]
@@ -2320,6 +2327,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "piper"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96c8c490f422ef9a4efd2cb5b42b76c8613d7e7dfc1caf667b8a3350a5acc066"
+dependencies = [
+ "atomic-waker",
+ "fastrand",
+ "futures-io",
+]
+
+[[package]]
 name = "pkcs1"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2345,20 +2363,6 @@ name = "pkg-config"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
-
-[[package]]
-name = "polling"
-version = "3.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d0e4f59085d47d8241c88ead0f274e8a0cb551f3625263c05eb8dd897c34218"
-dependencies = [
- "cfg-if",
- "concurrent-queue",
- "hermit-abi",
- "pin-project-lite",
- "rustix",
- "windows-sys 0.61.2",
-]
 
 [[package]]
 name = "potential_utf"

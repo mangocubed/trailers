@@ -18,6 +18,7 @@ Movies and TV Series recommendations.
 | Name                         | Type    | Default                                              | Packages        |
 | ---------------------------- | ------- | ---------------------------------------------------- | --------------- |
 | API_ADDRESS                  | String  | 127.0.0.1:8000                                       | api             |
+| API_CLIENT_IP_SOURCE         | String  | ConnectInfo                                          | api             |
 | API_SERVE_STORAGE            | Boolean | true                                                 | api             |
 | API_TOKENS                   | String  | trailers                                             | api             |
 | CACHE_REDIS_URL              | String  | redis://127.0.0.1:6379/1                             | api             |

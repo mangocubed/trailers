@@ -56,6 +56,10 @@ impl QueryRoot {
         .await
     }
 
+    async fn user(&self, username: String) -> Option<UserObject<'_>> {
+        commands::get_user_by_username(&username).await.map(UserObject).ok()
+    }
+
     async fn video(&self, ctx: &Context<'_>, id: ID) -> Option<VideoObject<'_>> {
         let user = ctx.user_opt();
         let video = commands::get_video_by_id(id.try_into_uuid().ok()?, user).await.ok()?;

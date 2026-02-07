@@ -91,6 +91,28 @@ async fn get_user_by_username_or_email(username_or_email: &str) -> sqlx::Result<
 
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    convert = r#"{ username.to_lowercase() }"#,
+    ty = "AsyncRedisCache<String, User>",
+    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_BY_USERNAME).await }"##
+)]
+pub async fn get_user_by_username(username: &str) -> sqlx::Result<User<'static>> {
+    if username.is_empty() {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        User,
+        "SELECT * FROM users WHERE disabled_at IS NULL AND LOWER(username) = $1 LIMIT 1",
+        username.to_lowercase(), // $1
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ email.to_lowercase() }"#,
     ty = "AsyncRedisCache<String, Uuid>",
     create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_ID_BY_EMAIL).await }"##

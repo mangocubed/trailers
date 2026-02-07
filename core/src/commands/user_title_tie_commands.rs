@@ -1,6 +1,8 @@
 use chrono::Utc;
+use uuid::Uuid;
 
 use crate::models::{Title, User, UserTitleTie, Video};
+use crate::pagination::{CursorPage, CursorParams};
 use crate::{db_pool, jobs_storage};
 
 pub async fn get_or_insert_user_title_tie(user: &User<'_>, title: &Title<'_>) -> sqlx::Result<UserTitleTie> {
@@ -30,6 +32,65 @@ pub async fn get_user_title_tie(user: &User<'_>, title: &Title<'_>) -> sqlx::Res
         title.id, // $2
     )
     .fetch_one(db_pool)
+    .await
+}
+
+async fn get_user_title_tie_by_id(id: Uuid) -> sqlx::Result<UserTitleTie> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        UserTitleTie,
+        "SELECT * FROM user_title_ties WHERE id = $1 LIMIT 1",
+        id, // $1
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+pub async fn paginate_user_title_ties(
+    cursor_params: &CursorParams,
+    user: &User<'_>,
+    is_bookmarked: Option<bool>,
+    is_watched: Option<bool>,
+) -> CursorPage<UserTitleTie> {
+    let db_pool = db_pool().await;
+
+    CursorPage::new(
+        cursor_params,
+        |node: &UserTitleTie| node.id,
+        async |after| get_user_title_tie_by_id(after).await.ok(),
+        async |cursor_resource, limit| {
+            let (cursor_id, cursor_created_at) = cursor_resource
+                .map(|r| (Some(r.id), Some(r.created_at)))
+                .unwrap_or_default();
+
+            sqlx::query_as!(
+                UserTitleTie,
+                r#"SELECT * FROM user_title_ties
+                    WHERE (
+                            $1::uuid IS NULL OR $2::timestamptz IS NULL OR created_at < $2
+                            OR (created_at = $2 AND id < $1)
+                        ) AND ($3::uuid IS NULL OR user_id = $3)
+                        AND (
+                            $4::bool IS NULL OR ($4 IS TRUE AND bookmarked_at IS NOT NULL)
+                            OR ($4 IS FALSE AND bookmarked_at IS NULL)
+                        ) AND (
+                            $5::bool IS NULL OR ($5 IS TRUE AND watched_at IS NOT NULL)
+                            OR ($5 IS FALSE AND liked_at IS NULL)
+                        )
+                    ORDER BY created_at DESC, id DESC LIMIT $6"#,
+                cursor_id,         // $1
+                cursor_created_at, // $2
+                user.id,           // $3
+                is_bookmarked,     // $4
+                is_watched,        // $5
+                limit              // $6
+            )
+            .fetch_all(db_pool)
+            .await
+            .unwrap_or_default()
+        },
+    )
     .await
 }
 

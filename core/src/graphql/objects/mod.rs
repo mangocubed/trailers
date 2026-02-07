@@ -7,8 +7,10 @@ use crate::models::*;
 use crate::{Info, commands};
 
 mod title_object;
+mod user_object;
 
 pub use title_object::*;
+pub use user_object::*;
 
 pub struct InfoObject(pub Info);
 
@@ -181,43 +183,6 @@ impl TitleWatchProviderObject {
 
     async fn country_codes(&self) -> Vec<String> {
         self.0.country_codes.clone()
-    }
-
-    async fn created_at(&self) -> DateTime<Utc> {
-        self.0.created_at
-    }
-
-    async fn updated_at(&self) -> Option<DateTime<Utc>> {
-        self.0.updated_at
-    }
-}
-
-pub struct UserObject<'a>(pub User<'a>);
-
-#[Object]
-impl UserObject<'_> {
-    async fn id(&self) -> ID {
-        self.0.id.into()
-    }
-
-    async fn username(&self) -> &str {
-        &self.0.username
-    }
-
-    async fn display_name(&self) -> &str {
-        &self.0.display_name
-    }
-
-    async fn full_name(&self) -> &str {
-        &self.0.full_name
-    }
-
-    async fn initials(&self) -> String {
-        self.0.initials()
-    }
-
-    async fn country_code(&self) -> &str {
-        &self.0.country_code
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

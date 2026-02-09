@@ -15,7 +15,7 @@ apalis = "1.0.0-rc.3"
 async-graphql = "8.0.0-rc.2"
 chrono = { version = "0.4.43", features = ["serde"] }
 envconfig = "0.11.1"
-reqwest = { version = "0.13.1", features = ["json"] }
+reqwest = { version = "0.13.2", features = ["json"] }
 serde = "1.0.228"
 tokio = { version = "1.49.0", features = [
     "macros",

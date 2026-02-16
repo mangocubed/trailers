@@ -42,7 +42,7 @@ sqlx = { version = "0.8.6", features = [
 ] }
 tokio.workspace = true
 url.workspace = true
-uuid = { version = "1.20.0", features = ["serde"] }
+uuid = { version = "1.21.0", features = ["serde"] }
 
 [features]
 default = ["graphql"]

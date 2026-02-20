@@ -10,7 +10,7 @@ homepage = "https://trailers.mango3.app"
 repository = "https://github.com/mangocubed/trailers"
 
 [workspace.dependencies]
-anyhow = "1.0.101"
+anyhow = "1.0.102"
 apalis = "1.0.0-rc.4"
 async-graphql = "8.0.0-rc.2"
 chrono = { version = "0.4.43", features = ["serde"] }

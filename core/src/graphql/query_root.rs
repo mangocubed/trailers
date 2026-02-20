@@ -11,7 +11,7 @@ pub struct QueryRoot;
 
 #[Object]
 impl QueryRoot {
-    async fn current_user<'a>(&self, ctx: &'a Context<'_>) -> Option<UserObject<'a>> {
+    async fn current_user<'a>(&self, ctx: &'a Context<'_>) -> Option<UserObject> {
         ctx.user_opt().map(|user| UserObject(user.clone()))
     }
 
@@ -56,8 +56,13 @@ impl QueryRoot {
         .await
     }
 
-    async fn user(&self, username: String) -> Option<UserObject<'_>> {
-        commands::get_user_by_username(&username).await.map(UserObject).ok()
+    async fn user(&self, username: String) -> Option<UserObject> {
+        let identity_user = commands::get_identity_user(&username).await.ok()?;
+
+        commands::get_user_by_identity_user(&identity_user)
+            .await
+            .map(UserObject)
+            .ok()
     }
 
     async fn video(&self, ctx: &Context<'_>, id: ID) -> Option<VideoObject<'_>> {

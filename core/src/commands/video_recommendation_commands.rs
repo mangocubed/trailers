@@ -1,7 +1,7 @@
 use crate::db_pool;
 use crate::models::User;
 
-pub async fn update_video_recommendations(user: &User<'_>) -> sqlx::Result<()> {
+pub async fn update_video_recommendations(user: &User) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
 
     let skip_update = sqlx::query!(

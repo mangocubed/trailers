@@ -21,7 +21,7 @@ async fn delete_video(video: &Video<'_>) -> sqlx::Result<()> {
     Ok(())
 }
 
-pub async fn get_video_by_id<'a>(id: Uuid, user: Option<&User<'_>>) -> sqlx::Result<Video<'a>> {
+pub async fn get_video_by_id<'a>(id: Uuid, user: Option<&User>) -> sqlx::Result<Video<'a>> {
     let db_pool = db_pool().await;
 
     let user_id = user.map(|u| u.id);
@@ -155,7 +155,7 @@ pub async fn insert_video<'a>(
 
 pub async fn paginate_videos<'a>(
     cursor_params: CursorParams,
-    user: Option<&'a User<'_>>,
+    user: Option<&'a User>,
     title: Option<&'a Title<'_>>,
     include_viewed: Option<bool>,
     include_adult: Option<bool>,

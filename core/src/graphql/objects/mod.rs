@@ -92,31 +92,6 @@ impl PersonObject<'_> {
     }
 }
 
-pub struct SessionObject<'a>(pub Session<'a>);
-
-#[Object]
-impl SessionObject<'_> {
-    async fn id(&self) -> ID {
-        self.0.id.into()
-    }
-
-    async fn user(&self) -> Result<UserObject<'_>> {
-        Ok(UserObject(self.0.user().await?))
-    }
-
-    async fn token(&self) -> &str {
-        &self.0.token
-    }
-
-    async fn created_at(&self) -> DateTime<Utc> {
-        self.0.created_at
-    }
-
-    async fn updated_at(&self) -> Option<DateTime<Utc>> {
-        self.0.updated_at
-    }
-}
-
 pub struct TitleCastObject<'a>(pub TitleCast<'a>);
 
 #[Object]

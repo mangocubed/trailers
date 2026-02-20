@@ -1,18 +1,20 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
-use async_graphql::{ID, Object};
+use async_graphql::{ID, Object, Result};
 use chrono::{DateTime, Utc};
+use url::Url;
 use uuid::Uuid;
 
 use crate::commands;
+use crate::identity::IdentityUser;
 use crate::models::User;
 use crate::pagination::CursorParams;
 
 use super::UserTitleTieObject;
 
-pub struct UserObject<'a>(pub User<'a>);
+pub struct IdentityUserObject<'a>(pub IdentityUser<'a>);
 
 #[Object]
-impl UserObject<'_> {
+impl IdentityUserObject<'_> {
     async fn id(&self) -> ID {
         self.0.id.into()
     }
@@ -25,16 +27,41 @@ impl UserObject<'_> {
         &self.0.display_name
     }
 
-    async fn full_name(&self) -> &str {
-        &self.0.full_name
+    async fn initials(&self) -> &str {
+        &self.0.initials
     }
 
-    async fn initials(&self) -> String {
-        self.0.initials()
+    async fn language_code(&self) -> &str {
+        &self.0.language_code
     }
 
     async fn country_code(&self) -> &str {
         &self.0.country_code
+    }
+
+    async fn avatar_image_url(&self) -> Url {
+        self.0.avatar_image_url.clone()
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
+pub struct UserObject(pub User);
+
+#[Object]
+impl UserObject {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn identity_user(&self) -> Result<IdentityUserObject<'_>> {
+        Ok(self.0.identity_user().await.map(IdentityUserObject)?)
     }
 
     async fn title_ties(
@@ -43,7 +70,7 @@ impl UserObject<'_> {
         first: Option<i32>,
         is_bookmarked: Option<bool>,
         is_watched: Option<bool>,
-    ) -> async_graphql::Result<Connection<Uuid, UserTitleTieObject, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<Uuid, UserTitleTieObject, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
             None,

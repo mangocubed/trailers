@@ -1,5 +1,3 @@
-use std::net::IpAddr;
-
 use apalis::prelude::TaskSink;
 use apalis_redis::RedisStorage;
 use chrono::{DateTime, NaiveDate, Utc};
@@ -17,19 +15,16 @@ pub mod graphql;
 pub mod commands;
 pub mod config;
 pub mod enums;
+pub mod identity;
 pub mod jobs;
 pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
-use crate::jobs::{NewSessionJob, NewUserJob, PopulateJob, VideoRecommendationsJob};
-use crate::models::{Session, User};
+use crate::jobs::{NewUserJob, PopulateJob, VideoRecommendationsJob};
+use crate::models::User;
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
-
-fn block_on<T>(f: impl Future<Output = T>) -> T {
-    tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on(f))
-}
 
 async fn db_pool<'a>() -> &'a PgPool {
     DB_POOL_CELL
@@ -50,7 +45,6 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
 }
 
 pub struct JobsStorage {
-    pub new_session: RedisStorage<NewSessionJob>,
     pub new_user: RedisStorage<NewUserJob>,
     pub populate: RedisStorage<PopulateJob>,
     pub video_recommendations: RedisStorage<VideoRecommendationsJob>,
@@ -59,7 +53,6 @@ pub struct JobsStorage {
 impl JobsStorage {
     async fn new() -> Self {
         Self {
-            new_session: Self::storage().await,
             new_user: Self::storage().await,
             populate: Self::storage().await,
             video_recommendations: Self::storage().await,
@@ -74,18 +67,7 @@ impl JobsStorage {
         RedisStorage::new(conn)
     }
 
-    pub(crate) async fn push_new_session(&self, session: &Session<'_>, ip_addr: IpAddr) {
-        self.new_session
-            .clone()
-            .push(NewSessionJob {
-                session_id: session.id,
-                ip_addr,
-            })
-            .await
-            .expect("Could not store job");
-    }
-
-    pub(crate) async fn push_new_user(&self, user: &User<'_>) {
+    pub(crate) async fn push_new_user(&self, user: &User) {
         self.new_user
             .clone()
             .push(NewUserJob { user_id: user.id })
@@ -101,7 +83,7 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
-    pub async fn push_video_recommendations(&self, user: &User<'_>) {
+    pub async fn push_video_recommendations(&self, user: &User) {
         self.video_recommendations
             .clone()
             .push(VideoRecommendationsJob { user_id: user.id })

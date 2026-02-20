@@ -3,7 +3,7 @@ use lettre::message::header::ContentType;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
 use lettre::{Message, transport::smtp::authentication::Credentials};
 
-use trailers_core::models::{Session, User};
+use trailers_core::models::User;
 
 use crate::config::MAILER_CONFIG;
 
@@ -46,49 +46,32 @@ async fn send_email(to: &str, subject: &str, body: &str) -> Result<(), BoxDynErr
     Ok(())
 }
 
-pub async fn send_new_session_email(session: &Session<'_>) -> Result<(), BoxDynError> {
-    let user = session.user().await?;
+pub async fn send_welcome_email(user: &User) -> Result<(), BoxDynError> {
+    let identity_user = user.identity_user().await?;
 
     let message = format!(
         "Hello @{},
 
-Someone has started a new session from:
-
-Location: {}
-
-If you recognize this action, you can ignore this message.
-
-If not, please contact us at the following email address: {}",
-        user.username,
-        session.location(),
-        MAILER_CONFIG.support_email_address,
-    );
-
-    send_email(&user.email, "New session started", &message).await
-}
-
-pub async fn send_welcome_email(user: &User<'_>) -> Result<(), BoxDynError> {
-    let message = format!(
-        "Hello @{},
-
-        Welcome to Mango³.
+        Welcome to Mango³ Trailers.
 
         If you have any questions, please contact us at the following email address: {}",
-        user.username, MAILER_CONFIG.support_email_address
+        identity_user.username, MAILER_CONFIG.support_email_address
     );
 
-    send_email(&user.email, "Welcome to Mango³", &message).await
+    send_email(&identity_user.email, "Welcome to Mango³ Trailers", &message).await
 }
 
 pub mod admin_emails {
     use super::*;
 
-    pub async fn send_new_user_email(user: &User<'_>) -> Result<(), BoxDynError> {
+    pub async fn send_new_user_email(user: &User) -> Result<(), BoxDynError> {
+        let identity_user = user.identity_user().await?;
+
         let message = format!(
             "Hello,
 
 Someone has created a new user account with the following username: @{}",
-            user.username
+            identity_user.username
         );
 
         send_email(

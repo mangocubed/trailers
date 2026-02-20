@@ -8,22 +8,23 @@ use url::Url;
 pub(crate) static CACHE_CONFIG: LazyLock<CacheConfig> = LazyLock::new(|| CacheConfig::init_from_env().unwrap());
 pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
     LazyLock::new(|| DatabaseConfig::init_from_env().unwrap());
+pub(crate) static IDENTITY_CONFIG: LazyLock<IdentityConfig> =
+    LazyLock::new(|| IdentityConfig::init_from_env().unwrap());
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
 pub static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
-pub(crate) static USERS_CONFIG: LazyLock<UsersConfig> = LazyLock::new(|| UsersConfig::init_from_env().unwrap());
 pub(crate) static YT_DLP_CONFIG: LazyLock<YtDlpConfig> = LazyLock::new(|| YtDlpConfig::init_from_env().unwrap());
 
 #[derive(Envconfig)]
 pub struct CacheConfig {
-    #[envconfig(from = "CACHE_REDIS_URL", default = "redis://127.0.0.1:6379/1")]
+    #[envconfig(from = "CACHE_REDIS_URL", default = "redis://127.0.0.1:6379/0")]
     pub redis_url: String,
-    #[envconfig(from = "CACHE_TTL", default = "3600")]
-    ttl: u16,
+    #[envconfig(from = "CACHE_TTL_SECS", default = "3600")]
+    ttl_secs: u16,
 }
 
 impl CacheConfig {
     pub fn ttl(&self) -> Duration {
-        Duration::from_secs(self.ttl as u64)
+        Duration::from_secs(self.ttl_secs as u64)
     }
 }
 
@@ -39,8 +40,14 @@ pub(crate) struct DatabaseConfig {
 }
 
 #[derive(Envconfig)]
+pub struct IdentityConfig {
+    #[envconfig(from = "IDENTITY_API_URL", default = "http://127.0.0.1:8005")]
+    pub api_url: Url,
+}
+
+#[derive(Envconfig)]
 pub(crate) struct MonitorConfig {
-    #[envconfig(from = "MONITOR_REDIS_URL", default = "redis://127.0.0.1:6379/0")]
+    #[envconfig(from = "MONITOR_REDIS_URL", default = "redis://127.0.0.1:6379/1")]
     pub redis_url: String,
 }
 
@@ -48,14 +55,8 @@ pub(crate) struct MonitorConfig {
 pub struct StorageConfig {
     #[envconfig(from = "STORAGE_PATH", default = "./storage/")]
     pub path: PathBuf,
-    #[envconfig(from = "STORAGE_URL", default = "http://127.0.0.1:8000/storage/")]
+    #[envconfig(from = "STORAGE_URL", default = "http://127.0.0.1:8005/storage/")]
     pub url: Url,
-}
-
-#[derive(Envconfig)]
-pub(crate) struct UsersConfig {
-    #[envconfig(from = "USERS_SESSION_TOKEN_LENGTH", default = "64")]
-    pub session_token_length: u8,
 }
 
 #[derive(Envconfig)]

@@ -24,6 +24,6 @@ tokio = { version = "1.49.0", features = [
 ] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
-url = "2.5.8"
+url = { version = "2.5.8", features = ["serde"] }
 trailers-core = { path = "./core", default-features = false }
 trailers-monitor.path = "./monitor"

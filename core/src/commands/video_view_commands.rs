@@ -1,7 +1,7 @@
 use crate::db_pool;
 use crate::models::{User, Video};
 
-pub async fn insert_video_view(video: &Video<'_>, user: &User<'_>) -> sqlx::Result<()> {
+pub async fn insert_video_view(video: &Video<'_>, user: &User) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
 
     sqlx::query!(

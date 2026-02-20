@@ -5,7 +5,7 @@ use crate::models::{Title, User, UserTitleTie, Video};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::{db_pool, jobs_storage};
 
-pub async fn get_or_insert_user_title_tie(user: &User<'_>, title: &Title<'_>) -> sqlx::Result<UserTitleTie> {
+pub async fn get_or_insert_user_title_tie(user: &User, title: &Title<'_>) -> sqlx::Result<UserTitleTie> {
     if let Ok(user_title_tie) = get_user_title_tie(user, title).await {
         return Ok(user_title_tie);
     }
@@ -22,7 +22,7 @@ pub async fn get_or_insert_user_title_tie(user: &User<'_>, title: &Title<'_>) ->
     .await
 }
 
-pub async fn get_user_title_tie(user: &User<'_>, title: &Title<'_>) -> sqlx::Result<UserTitleTie> {
+pub async fn get_user_title_tie(user: &User, title: &Title<'_>) -> sqlx::Result<UserTitleTie> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -49,7 +49,7 @@ async fn get_user_title_tie_by_id(id: Uuid) -> sqlx::Result<UserTitleTie> {
 
 pub async fn paginate_user_title_ties(
     cursor_params: &CursorParams,
-    user: &User<'_>,
+    user: &User,
     is_bookmarked: Option<bool>,
     is_watched: Option<bool>,
 ) -> CursorPage<UserTitleTie> {

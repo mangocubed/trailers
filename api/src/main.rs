@@ -13,7 +13,6 @@ use axum_extra::TypedHeader;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::authorization::Bearer;
 use tokio::net::TcpListener;
-use tokio::try_join;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
@@ -21,6 +20,7 @@ use tracing::Level;
 
 use trailers_core::config::STORAGE_CONFIG;
 use trailers_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
+use trailers_core::identity::Identity;
 use trailers_core::{Info, commands};
 
 use crate::config::API_CONFIG;
@@ -29,12 +29,12 @@ use crate::constants::{ERROR_FORBIDDEN, HEADER_X_API_TOKEN};
 mod config;
 mod constants;
 
-trait HttpError<T> {
+trait OrHttpError<T> {
     #[allow(clippy::result_large_err)]
     fn or_forbidden(self) -> Result<T>;
 }
 
-impl<T> HttpError<T> for Option<T> {
+impl<T> OrHttpError<T> for Option<T> {
     fn or_forbidden(self) -> Result<T> {
         match self {
             Some(value) => Ok(value),
@@ -43,7 +43,7 @@ impl<T> HttpError<T> for Option<T> {
     }
 }
 
-impl<T, E> HttpError<T> for Result<T, E> {
+impl<T, E> OrHttpError<T> for Result<T, E> {
     fn or_forbidden(self) -> Result<T> {
         match self {
             Ok(value) => Ok(value),
@@ -79,12 +79,12 @@ async fn post_graphql(
 
     if let Some(TypedHeader(Authorization(bearer))) = authorization {
         let token = bearer.token().to_owned();
+        let identity = Identity::new().set_token(token.clone());
 
-        if let Ok((session, user)) = try_join!(
-            commands::get_session_by_token(token.clone()),
-            commands::get_user_by_session_token(token)
-        ) {
-            batch_request = batch_request.data(session).data(user);
+        if let Ok(identity_user) = identity.current_user().await
+            && let Ok(user) = commands::get_or_insert_user(&identity_user).await
+        {
+            batch_request = batch_request.data(user);
         }
     }
 
@@ -115,7 +115,7 @@ async fn main() {
 
     let cors_layer = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods([Method::GET, Method::POST, Method::POST])
+        .allow_methods([Method::GET, Method::POST])
         .allow_headers(Any);
 
     let mut router = Router::new()
@@ -134,7 +134,7 @@ async fn main() {
 
     let listener = TcpListener::bind(&api_address).await.unwrap();
 
-    tracing::info!("Listening on {api_address}");
+    tracing::info!("Listening on http://{api_address}");
 
     axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>())
         .await

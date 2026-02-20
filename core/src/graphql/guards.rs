@@ -3,19 +3,6 @@ use async_graphql::{Context, Guard, Result};
 use super::CustomContext;
 
 #[derive(Default)]
-pub struct GuestGuard;
-
-impl Guard for GuestGuard {
-    async fn check(&self, ctx: &Context<'_>) -> Result<()> {
-        if ctx.session_opt().is_none() {
-            Ok(())
-        } else {
-            Err("Forbidden".into())
-        }
-    }
-}
-
-#[derive(Default)]
 pub struct UserGuard;
 
 impl Guard for UserGuard {

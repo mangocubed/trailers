@@ -4,20 +4,20 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use cached::async_sync::OnceCell;
+use cached::proc_macro::io_cached;
 use cached::{AsyncRedisCache, IOCachedAsync};
 use md5::{Digest, Md5};
-use rand::distr::Alphanumeric;
-use rand::{Rng, rng};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 
 use crate::config::CACHE_CONFIG;
+use crate::constants::CACHE_PREFIX_GET_IDENTITY_USER;
+use crate::identity::{Identity, IdentityUser};
 
 mod genre_commands;
 mod keyword_commands;
 mod person_commands;
-mod session_commands;
 mod title_cast_commands;
 mod title_commands;
 mod title_crew_commands;
@@ -31,7 +31,6 @@ mod watch_provider_commands;
 pub use genre_commands::*;
 pub use keyword_commands::*;
 pub use person_commands::*;
-pub use session_commands::*;
 pub use title_cast_commands::*;
 pub use title_commands::*;
 pub use title_crew_commands::*;
@@ -100,10 +99,14 @@ async fn download_file(source_url: Url, dest_path: PathBuf) -> anyhow::Result<()
     Ok(())
 }
 
-fn generate_random_string(length: u8) -> String {
-    rng()
-        .sample_iter(&Alphanumeric)
-        .take(length as usize)
-        .map(char::from)
-        .collect()
+#[io_cached(
+    map_error = r##"|_| anyhow::anyhow!("Could not get identity user")"##,
+    convert = r#"{ username_or_id.to_lowercase() }"#,
+    ty = "AsyncRedisCache<String, IdentityUser<'_>>",
+    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_IDENTITY_USER).await }"##
+)]
+pub async fn get_identity_user(username_or_id: &str) -> anyhow::Result<IdentityUser<'static>> {
+    let identity_user = Identity::new().user(username_or_id).await?;
+
+    Ok(identity_user)
 }

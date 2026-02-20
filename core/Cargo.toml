@@ -19,7 +19,6 @@ async-graphql = { workspace = true, features = [
 ], optional = true }
 apalis.workspace = true
 apalis-redis = "1.0.0-rc.3"
-argon2 = "0.5.3"
 cached = { version = "0.56.0", features = [
     "async",
     "redis_store",
@@ -28,7 +27,6 @@ cached = { version = "0.56.0", features = [
 chrono.workspace = true
 envconfig.workspace = true
 md-5 = "0.10.6"
-rand = "0.9.2"
 regex = { version = "1.12.3", optional = true }
 reqwest.workspace = true
 rust_iso3166 = "0.1.14"
@@ -41,6 +39,7 @@ sqlx = { version = "0.8.6", features = [
     "uuid",
 ] }
 tokio.workspace = true
+tracing.workspace = true
 url.workspace = true
 uuid = { version = "1.21.0", features = ["serde"] }
 

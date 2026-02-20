@@ -43,7 +43,6 @@ pub struct TmdbCredits<'a> {
     pub crew: Vec<TmdbCrew<'a>>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct TmdbCrew<'a> {
     pub id: i32,
@@ -223,13 +222,22 @@ impl<'a> Tmdb<'a> {
 
         request_url.set_query(Some(&format!("api_key={}&{}", self.api_key, query.unwrap_or_default())));
 
-        reqwest::Client::new()
+        let result = reqwest::Client::new()
             .get(request_url.clone())
             .send()
             .await?
             .error_for_status()?
             .json()
-            .await
+            .await;
+
+        match result {
+            Ok(data) => Ok(data),
+            Err(err) => {
+                tracing::error!("Could not execute request: {:?}", err);
+
+                Err(err)
+            }
+        }
     }
 
     fn changes_query(&self, page: usize, end_date: Option<NaiveDate>, start_date: Option<NaiveDate>) -> String {

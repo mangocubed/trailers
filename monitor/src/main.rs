@@ -11,7 +11,6 @@ use trailers_core::jobs_storage;
 
 mod config;
 mod handlers;
-mod ip_geo;
 mod mailer;
 mod populate;
 mod tmdb;
@@ -42,13 +41,6 @@ async fn main() {
             .build(handlers::daily)
     };
 
-    let new_session_worker = |index| {
-        WorkerBuilder::new(format!("new-session-{index}"))
-            .backend(jobs_storage.new_session.clone())
-            .enable_tracing()
-            .build(handlers::new_session)
-    };
-
     let new_user_worker = |index| {
         WorkerBuilder::new(format!("new-user-{index}"))
             .backend(jobs_storage.new_user.clone())
@@ -73,7 +65,6 @@ async fn main() {
 
     Monitor::new()
         .register(daily_worker)
-        .register(new_session_worker)
         .register(new_user_worker)
         .register(populate_worker)
         .register(video_recommendations_worker)

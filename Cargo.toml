@@ -12,7 +12,7 @@ repository = "https://github.com/mangocubed/trailers"
 [workspace.dependencies]
 anyhow = "1.0.101"
 apalis = "1.0.0-rc.4"
-async-graphql = "8.0.0-rc.2"
+async-graphql = "8.0.0-rc.3"
 chrono = { version = "0.4.43", features = ["serde"] }
 envconfig = "0.11.1"
 reqwest = { version = "0.13.2", features = ["json"] }

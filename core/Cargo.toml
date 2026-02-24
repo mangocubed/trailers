@@ -18,7 +18,7 @@ async-graphql = { workspace = true, features = [
     "uuid",
 ], optional = true }
 apalis.workspace = true
-apalis-redis = "1.0.0-rc.3"
+apalis-redis = "1.0.0-rc.4"
 cached = { version = "0.56.0", features = [
     "async",
     "redis_store",

@@ -5,14 +5,12 @@ on:
         branches: [main]
         paths-ignore:
             - .editorconfig
-            - LICENCE
             - README.md
 
     push:
         branches: [main]
         paths-ignore:
             - .editorconfig
-            - LICENCE
             - README.md
 
 jobs:

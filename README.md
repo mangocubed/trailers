@@ -20,7 +20,6 @@ Movies and TV Series recommendations.
 | API_ADDRESS                  | String  | 127.0.0.1:8005                                       | api             |
 | API_CLIENT_IP_SOURCE         | String  | ConnectInfo                                          | api             |
 | API_SERVE_STORAGE            | Boolean | true                                                 | api             |
-| API_TOKENS                   | String  | trailers                                             | api             |
 | CACHE_REDIS_URL              | String  | redis://127.0.0.1:6379/0                             | api,monitor     |
 | CACHE_TTL_SECS               | Number  | 3600                                                 | api,monitor     |
 | DATABASE_MAX_CONNECTIONS     | Number  | 5                                                    | api,monitor     |

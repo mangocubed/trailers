@@ -4,7 +4,7 @@ use async_graphql::extensions::apollo_persisted_queries::{ApolloPersistedQueries
 use async_graphql::extensions::{ApolloTracing, Logger};
 use async_graphql_axum::{GraphQLBatchRequest, GraphQLResponse};
 use axum::extract::State;
-use axum::http::{HeaderMap, Method};
+use axum::http::Method;
 use axum::response::{IntoResponse, Result};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -24,33 +24,8 @@ use trailers_core::identity::Identity;
 use trailers_core::{Info, commands};
 
 use crate::config::API_CONFIG;
-use crate::constants::{ERROR_FORBIDDEN, HEADER_X_API_TOKEN};
 
 mod config;
-mod constants;
-
-trait OrHttpError<T> {
-    #[allow(clippy::result_large_err)]
-    fn or_forbidden(self) -> Result<T>;
-}
-
-impl<T> OrHttpError<T> for Option<T> {
-    fn or_forbidden(self) -> Result<T> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(ERROR_FORBIDDEN.into()),
-        }
-    }
-}
-
-impl<T, E> OrHttpError<T> for Result<T, E> {
-    fn or_forbidden(self) -> Result<T> {
-        match self {
-            Ok(value) => Ok(value),
-            Err(_) => Err(ERROR_FORBIDDEN.into()),
-        }
-    }
-}
 
 async fn get_index() -> impl IntoResponse {
     Json(Info::default())
@@ -58,21 +33,10 @@ async fn get_index() -> impl IntoResponse {
 
 async fn post_graphql(
     State(schema): State<GraphqlSchema>,
-    headers: HeaderMap,
     authorization: Option<TypedHeader<Authorization<Bearer>>>,
     ClientIp(client_ip): ClientIp,
     batch_request: GraphQLBatchRequest,
 ) -> Result<GraphQLResponse> {
-    let api_token = headers
-        .get(HEADER_X_API_TOKEN)
-        .or_forbidden()?
-        .to_str()
-        .or_forbidden()?;
-
-    if !API_CONFIG.tokens().contains(&api_token) {
-        return Err(ERROR_FORBIDDEN.into());
-    }
-
     let mut batch_request = batch_request.into_inner();
 
     batch_request = batch_request.data(client_ip);

@@ -93,7 +93,7 @@ jobs:
             - run: |
                   cargo run --package trailers-cli --release graphql-schema \
                   | tee ./trailers-${{ github.ref_name }}.graphql
-            - uses: actions/upload-artifact@v6
+            - uses: actions/upload-artifact@v7
               with:
                   name: trailers_graphql_schema
                   path: ./trailers-${{ github.ref_name }}.graphql

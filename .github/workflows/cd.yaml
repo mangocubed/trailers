@@ -1,10 +1,14 @@
 name: CD
 
 on:
-    release:
-        types: [published]
+    push:
+        tags:
+            - "v*"
 
     workflow_dispatch:
+
+permissions:
+    contents: write
 
 env:
     CARGO_TERM_COLOR: always
@@ -23,7 +27,6 @@ jobs:
                 ports:
                     - 5432:5432
                 options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
         steps:
             - uses: actions/checkout@v6
             - uses: ./.github/actions/setup-rust
@@ -33,6 +36,7 @@ jobs:
                   name: trailers_api_build
                   path: ./target/release/trailers-api
                   retention-days: 1
+                  overwrite: true
 
     build_cli:
         runs-on: ubuntu-24.04
@@ -46,7 +50,6 @@ jobs:
                 ports:
                     - 5432:5432
                 options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
         steps:
             - uses: actions/checkout@v6
             - uses: ./.github/actions/setup-rust
@@ -56,6 +59,7 @@ jobs:
                   name: trailers_cli_build
                   path: ./target/release/trailers-cli
                   retention-days: 1
+                  overwrite: true
 
     build_monitor:
         runs-on: ubuntu-24.04
@@ -69,7 +73,6 @@ jobs:
                 ports:
                     - 5432:5432
                 options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
         steps:
             - uses: actions/checkout@v6
             - uses: ./.github/actions/setup-rust
@@ -79,6 +82,38 @@ jobs:
                   name: trailers_monitor_build
                   path: ./target/release/trailers-monitor
                   retention-days: 1
+                  overwrite: true
+
+    dump_graphql_schema:
+        needs: [build_cli]
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v6
+            - uses: ./.github/actions/setup-rust
+            - run: |
+                  cargo run --package trailers-cli --release graphql-schema \
+                  | tee ./trailers-${{ github.ref_name }}.graphql
+            - uses: actions/upload-artifact@v6
+              with:
+                  name: trailers_graphql_schema
+                  path: ./trailers-${{ github.ref_name }}.graphql
+                  retention-days: 1
+                  overwrite: true
+
+    release:
+        needs: [dump_graphql_schema]
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/download-artifact@v8
+              with:
+                  name: trailers_graphql_schema
+                  path: artifact/
+            - uses: softprops/action-gh-release@v2
+              with:
+                  files: artifact/trailers-${{ github.ref_name }}.graphql
+                  generate_release_notes: true
+                  prerelease: ${{ contains(github.ref_name, '-alpha') }}
 
     deploy:
         needs: [build_api, build_cli, build_monitor]
@@ -88,14 +123,14 @@ jobs:
             - uses: actions/download-artifact@v8
               with:
                   name: trailers_api_build
-                  path: builds/
+                  path: artifact/
             - uses: actions/download-artifact@v8
               with:
                   name: trailers_cli_build
-                  path: builds/
+                  path: artifact/
             - uses: actions/download-artifact@v8
               with:
                   name: trailers_monitor_build
-                  path: builds/
+                  path: artifact/
             - name: Run deploy script
               run: ${{ secrets.DEPLOY_SCRIPT }}

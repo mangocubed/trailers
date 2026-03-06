@@ -99,10 +99,11 @@ jobs:
                 options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         steps:
             - uses: actions/checkout@v6
-            - uses: ./.github/actions/setup-rust
-            - run: |
-                  cargo run --package trailers-cli --release graphql-schema \
-                  | tee ./trailers-${{ github.ref_name }}.graphql
+            - uses: actions/download-artifact@v8
+              with:
+                  name: trailers_cli_build
+                  path: artifact/
+            - run: ./artifact/trailers-cli graphql-schema | tee ./trailers-${{ github.ref_name }}.graphql
             - uses: actions/upload-artifact@v7
               with:
                   name: trailers_graphql_schema

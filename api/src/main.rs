@@ -85,14 +85,16 @@ async fn main() {
     let mut router = Router::new()
         .route("/", get(get_index))
         .route("/graphql", post(post_graphql))
-        .with_state(graphql_schema)
-        .layer(cors_layer)
-        .layer(TraceLayer::new_for_http())
-        .layer(API_CONFIG.client_ip_source.clone().into_extension());
+        .with_state(graphql_schema);
 
     if API_CONFIG.serve_storage {
         router = router.nest_service("/storage", ServeDir::new(&STORAGE_CONFIG.path));
     }
+
+    router = router
+        .layer(cors_layer)
+        .layer(TraceLayer::new_for_http())
+        .layer(API_CONFIG.client_ip_source.clone().into_extension());
 
     let api_address = &API_CONFIG.address;
 

@@ -73,7 +73,6 @@ pub struct Title<'a> {
     pub released_on: Option<NaiveDate>,
     pub relevance: i64,
     pub search_rank: f32,
-    pub viewed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -182,11 +181,8 @@ pub struct UserTitleTie {
     pub user_id: Uuid,
     pub title_id: Uuid,
     pub bookmarked_at: Option<DateTime<Utc>>,
-    pub bookmarked_video_id: Option<Uuid>,
     pub liked_at: Option<DateTime<Utc>>,
-    pub liked_video_id: Option<Uuid>,
     pub watched_at: Option<DateTime<Utc>>,
-    pub watched_video_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }

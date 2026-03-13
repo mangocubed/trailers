@@ -57,7 +57,7 @@ async fn main() {
 
     let title_recommendations_worker = |index| {
         WorkerBuilder::new(format!("title-recommendations-{index}"))
-            .backend(jobs_storage.video_recommendations.clone())
+            .backend(jobs_storage.title_recommendations.clone())
             .concurrency(5)
             .enable_tracing()
             .build(handlers::title_recommendations_handler)

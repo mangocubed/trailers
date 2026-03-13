@@ -20,7 +20,7 @@ pub mod jobs;
 pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
-use crate::jobs::{NewUserJob, PopulateJob, VideoRecommendationsJob};
+use crate::jobs::{NewUserJob, PopulateJob, TitleRecommendationsJob};
 use crate::models::User;
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
@@ -47,7 +47,7 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
 pub struct JobsStorage {
     pub new_user: RedisStorage<NewUserJob>,
     pub populate: RedisStorage<PopulateJob>,
-    pub video_recommendations: RedisStorage<VideoRecommendationsJob>,
+    pub video_recommendations: RedisStorage<TitleRecommendationsJob>,
 }
 
 impl JobsStorage {
@@ -86,7 +86,7 @@ impl JobsStorage {
     pub async fn push_video_recommendations(&self, user: &User) {
         self.video_recommendations
             .clone()
-            .push(VideoRecommendationsJob { user_id: user.id })
+            .push(TitleRecommendationsJob { user_id: user.id })
             .await
             .expect("Could not store job");
     }

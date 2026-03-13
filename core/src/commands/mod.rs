@@ -21,10 +21,10 @@ mod person_commands;
 mod title_cast_commands;
 mod title_commands;
 mod title_crew_commands;
+mod title_recommendation_commands;
 mod user_commands;
 mod user_title_tie_commands;
 mod video_commands;
-mod video_recommendation_commands;
 mod video_view_commands;
 mod watch_provider_commands;
 
@@ -34,10 +34,10 @@ pub use person_commands::*;
 pub use title_cast_commands::*;
 pub use title_commands::*;
 pub use title_crew_commands::*;
+pub use title_recommendation_commands::*;
 pub use user_commands::*;
 pub use user_title_tie_commands::*;
 pub use video_commands::*;
-pub use video_recommendation_commands::*;
 pub use video_view_commands::*;
 pub use watch_provider_commands::*;
 

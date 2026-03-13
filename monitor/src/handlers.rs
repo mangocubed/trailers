@@ -3,7 +3,7 @@ use apalis_cron::Tick;
 
 use tracing::info;
 use trailers_core::commands;
-use trailers_core::jobs::{NewUserJob, PopulateJob, VideoRecommendationsJob};
+use trailers_core::jobs::{NewUserJob, PopulateJob, TitleRecommendationsJob};
 
 use crate::mailer::{admin_emails, send_welcome_email};
 use crate::populate::{populate_movies, populate_persons, populate_series};
@@ -37,10 +37,10 @@ pub async fn populate(job: PopulateJob) -> Result<(), BoxDynError> {
     Ok(())
 }
 
-pub async fn video_recommendations_handler(job: VideoRecommendationsJob) -> Result<(), BoxDynError> {
+pub async fn title_recommendations_handler(job: TitleRecommendationsJob) -> Result<(), BoxDynError> {
     let user = commands::get_user_by_id(job.user_id).await?;
 
-    commands::update_video_recommendations(&user).await?;
+    commands::update_title_recommendations(&user).await?;
 
     Ok(())
 }

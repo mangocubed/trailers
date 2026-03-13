@@ -71,7 +71,9 @@ pub struct Title<'a> {
     pub runtime: Option<PgInterval>,
     pub is_adult: bool,
     pub released_on: Option<NaiveDate>,
-    pub search_rank: Option<f32>,
+    pub relevance: i64,
+    pub search_rank: f32,
+    pub viewed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -191,7 +193,7 @@ pub struct UserTitleTie {
 
 impl UserTitleTie {
     pub async fn title(&self) -> sqlx::Result<Title<'_>> {
-        commands::get_title_by_id(self.title_id, None).await
+        commands::get_title_by_id(self.title_id, None, None).await
     }
 
     pub async fn user(&self) -> sqlx::Result<User> {
@@ -210,7 +212,6 @@ pub struct Video<'a> {
     pub duration_secs: i32,
     pub orientation: VideoOrientation,
     pub language: Cow<'a, str>,
-    pub relevance: i64,
     pub published_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
@@ -222,7 +223,7 @@ impl Video<'_> {
     }
 
     pub async fn title(&self) -> sqlx::Result<Title<'_>> {
-        commands::get_title_by_id(self.title_id, None).await
+        commands::get_title_by_id(self.title_id, None, None).await
     }
 
     pub fn url(&self) -> Url {

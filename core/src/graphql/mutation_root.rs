@@ -13,10 +13,10 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_bookmark(&self, ctx: &Context<'_>, input: UserTitleTieInputObject) -> Result<UserTitleTieObject> {
         let user = ctx.user();
-        let title = commands::get_title_by_id(input.title_id, None).await?;
+        let title = commands::get_title_by_id(input.title_id, None, None).await?;
         let user_title_tie = commands::get_or_insert_user_title_tie(user, &title).await?;
         let video = if let Some(video_id) = input.video_id {
-            Some(commands::get_video_by_id(video_id, None).await?)
+            Some(commands::get_video_by_id(video_id).await?)
         } else {
             None
         };
@@ -31,10 +31,10 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_like(&self, ctx: &Context<'_>, input: UserTitleTieInputObject) -> Result<UserTitleTieObject> {
         let user = ctx.user();
-        let title = commands::get_title_by_id(input.title_id, None).await?;
+        let title = commands::get_title_by_id(input.title_id, None, None).await?;
         let user_title_tie = commands::get_or_insert_user_title_tie(user, &title).await?;
         let video = if let Some(video_id) = input.video_id {
-            Some(commands::get_video_by_id(video_id, None).await?)
+            Some(commands::get_video_by_id(video_id).await?)
         } else {
             None
         };
@@ -49,10 +49,10 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_watched(&self, ctx: &Context<'_>, input: UserTitleTieInputObject) -> Result<UserTitleTieObject> {
         let user = ctx.user();
-        let title = commands::get_title_by_id(input.title_id, None).await?;
+        let title = commands::get_title_by_id(input.title_id, None, None).await?;
         let user_title_tie = commands::get_or_insert_user_title_tie(user, &title).await?;
         let video = if let Some(video_id) = input.video_id {
-            Some(commands::get_video_by_id(video_id, None).await?)
+            Some(commands::get_video_by_id(video_id).await?)
         } else {
             None
         };

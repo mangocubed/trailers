@@ -152,6 +152,7 @@ pub struct TmdbVideo<'a> {
     pub name: Cow<'a, str>,
     pub r#type: Cow<'a, str>,
     pub iso_639_1: Cow<'a, str>,
+    pub official: bool,
     pub published_at: Option<DateTime<Utc>>,
 }
 

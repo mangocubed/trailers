@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::db_pool;
 use crate::enums::TitleMediaType;
-use crate::models::Title;
+use crate::models::{Title, User};
 use crate::pagination::{CursorPage, CursorParams};
 
 use super::download_file;
@@ -23,8 +23,9 @@ pub async fn delete_title(title: &Title<'_>) -> sqlx::Result<()> {
     Ok(())
 }
 
-pub async fn get_title_by_id(id: Uuid, query: Option<&str>) -> sqlx::Result<Title<'_>> {
+pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&str>) -> sqlx::Result<Title<'a>> {
     let db_pool = db_pool().await;
+    let user_id = user.map(|u| u.id);
 
     sqlx::query_as!(
         Title,
@@ -41,12 +42,19 @@ pub async fn get_title_by_id(id: Uuid, query: Option<&str>) -> sqlx::Result<Titl
             runtime,
             is_adult,
             released_on,
+            CASE WHEN $2::uuid IS NOT NULL THEN
+                COALESCE((SELECT relevance FROM title_recommendations WHERE title_id = $1 AND user_id = $2), 0) ELSE 0
+            END AS "relevance!",
+            CASE WHEN $3::text IS NOT NULL THEN
+                COALESCE(ts_rank(search, websearch_to_tsquery($3)), 0) ELSE 0
+            END AS "search_rank!",
+            (SELECT created_at FROM user_title_ties WHERE title_id = $1 AND user_id = $2 LIMIT 1) AS viewed_at,
             created_at,
-            updated_at,
-            CASE WHEN $2::varchar IS NOT NULL THEN ts_rank(search, websearch_to_tsquery($2)) ELSE 0 END AS search_rank
+            updated_at
         FROM titles WHERE id = $1 LIMIT 1"#,
-        id,    // $1
-        query, // $2
+        id,      // $1
+        user_id, // $2
+        query,   // $3
     )
     .fetch_one(db_pool)
     .await
@@ -70,9 +78,11 @@ pub async fn get_title_by_tmdb_id<'a>(media_type: TitleMediaType, tmdb_id: i32) 
             runtime,
             is_adult,
             released_on,
+            0 AS "relevance!",
+            0::float4 AS "search_rank!",
+            NULL::timestamptz AS viewed_at,
             created_at,
-            updated_at,
-            NULL::float4 AS search_rank
+            updated_at
         FROM titles WHERE media_type = $1 AND tmdb_id = $2 LIMIT 1"#,
         media_type as TitleMediaType, // $1
         tmdb_id                       // $2
@@ -138,9 +148,11 @@ pub async fn insert_or_update_title<'a>(
             runtime,
             is_adult,
             released_on,
+            0 AS "relevance!",
+            0::float4 AS "search_rank!",
+            NULL::timestamptz AS viewed_at,
             created_at,
-            updated_at,
-            NULL::float4 AS search_rank"#,
+            updated_at"#,
         media_type as _,    // $1
         tmdb_id,            // $2
         tmdb_backdrop_path, // $3
@@ -173,23 +185,25 @@ pub async fn insert_or_update_title<'a>(
 
 pub async fn paginate_titles<'a>(
     cursor_params: CursorParams,
+    user: Option<&User>,
     query: Option<String>,
-    has_videos: Option<bool>,
+    include_viewed: Option<bool>,
 ) -> CursorPage<Title<'a>> {
     let db_pool = db_pool().await;
 
     CursorPage::new(
         &cursor_params,
         |node: &Title| node.id,
-        async |after| get_title_by_id(after, None).await.ok(),
+        async |after| get_title_by_id(after, None, None).await.ok(),
         async |cursor_resource, limit| {
-            let (cursor_id, cursor_search_rank) =
-                cursor_resource.map(|c| (Some(c.id), c.search_rank)).unwrap_or_default();
+            let (cursor_id, cursor_relevance, cursor_search_rank, cursor_created_at) =
+                cursor_resource.map(|c| (Some(c.id), Some(c.relevance), Some(c.search_rank), Some(c.created_at))).unwrap_or_default();
+            let user_id = user.map(|u| u.id);
 
             sqlx::query_as!(
                 Title,
                 r#"SELECT
-                    id,
+                    t.id,
                     media_type as "media_type!: TitleMediaType",
                     tmdb_id,
                     tmdb_backdrop_path,
@@ -201,34 +215,35 @@ pub async fn paginate_titles<'a>(
                     runtime,
                     is_adult,
                     released_on,
-                    created_at,
-                    updated_at,
-                    CASE WHEN $3::varchar IS NOT NULL THEN
-                        ts_rank(search, websearch_to_tsquery($3))
-                    ELSE
-                        NULL
-                    END AS search_rank
-                FROM titles AS t
+                    COALESCE(tr.relevance, 0) AS "relevance!",
+                    CASE WHEN $6::text IS NOT NULL THEN
+                        COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0)
+                    END AS "search_rank!",
+                    (SELECT created_at FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) AS viewed_at,
+                    t.created_at,
+                    t.updated_at
+                FROM titles AS t LEFT JOIN title_recommendations AS tr ON t.id = tr.title_id AND tr.user_id = $5
                 WHERE (
-                        $1::uuid IS NULL OR $2::float4 IS NULL OR $3 IS NULL
-                        OR ts_rank(search, websearch_to_tsquery($3)) < $2
-                        OR (ts_rank(search, websearch_to_tsquery($3)) = $2 AND id < $1)
+                        $1::uuid IS NULL OR COALESCE(tr.relevance, 0) < $2
+                        OR (COALESCE(tr.relevance, 0) = $2 AND COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) < $3)
+                        OR (COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) = $3 AND t.created_at < $4)
+                        OR (t.created_at = $4 AND t.id < $1)
                     ) AND (
-                        $3 IS NULL OR search @@ websearch_to_tsquery($3) OR name ILIKE '%'||$3||'%'
-                        OR overview ILIKE '%'||$3||'%'
+                        $6 IS NULL OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
+                        OR overview ILIKE '%'||$6||'%'
                     ) AND (
-                        $4::bool IS NULL OR (
-                            $4 = TRUE AND (SELECT id FROM videos AS v WHERE title_id = t.id LIMIT 1) IS NOT NULL
-                        ) OR (
-                            $4 = FALSE AND (SELECT id FROM videos AS v WHERE title_id = t.id LIMIT 1) IS NULL
-                        )
-                    )
-                ORDER BY search_rank DESC, id DESC LIMIT $5"#,
+                        $7 IS TRUE
+                        OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
+                    ) AND (tr.id IS NOT NULL OR (SELECT id FROM videos AS v WHERE title_id = t.id LIMIT 1) IS NOT NULL)
+                ORDER BY "relevance!" DESC, "search_rank!" DESC, created_at DESC, id DESC LIMIT $8"#,
                 cursor_id,          // $1
-                cursor_search_rank, // $2
-                query,              // $3
-                has_videos,         // $4
-                limit,              // $5
+                cursor_relevance,   // $2
+                cursor_search_rank, // $3
+                cursor_created_at,  // $4
+                user_id,            // $5
+                query,              // $6
+                include_viewed,     // $7
+                limit,              // $8
             )
             .fetch_all(db_pool)
             .await

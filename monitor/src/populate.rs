@@ -354,25 +354,28 @@ pub async fn populate_title_watch_providers(title: &Title<'_>) -> anyhow::Result
 pub async fn populate_videos(title: &Title<'_>) -> anyhow::Result<()> {
     let tmdb = Tmdb::new();
 
-    let tmdb_videos = match title.media_type {
+    let mut tmdb_videos = match title.media_type {
         TitleMediaType::Series => tmdb.tv_videos(title.tmdb_id).await?,
         _ => tmdb.movie_videos(title.tmdb_id).await?,
-    };
+    }
+    .results;
 
-    for tmdb_video in tmdb_videos.results {
-        if ![Cow::Borrowed("Teaser"), Cow::Borrowed("Trailer")].contains(&tmdb_video.r#type)
-            || tmdb_video.site != "YouTube"
-        {
-            continue;
-        }
+    tmdb_videos.retain(|tmdb_video| {
+        [Cow::Borrowed("Teaser"), Cow::Borrowed("Trailer")].contains(&tmdb_video.r#type)
+            && tmdb_video.site == "YouTube"
+            && tmdb_video.official
+    });
 
+    tmdb_videos.sort_by(|a, b| b.published_at.cmp(&a.published_at));
+
+    for tmdb_video in tmdb_videos {
         let video_type = if tmdb_video.r#type == "Teaser" {
             VideoType::Teaser
         } else {
             VideoType::Trailer
         };
 
-        let _ = commands::insert_video(
+        let result = commands::insert_video(
             title,
             &tmdb_video.id,
             VideoSource::Youtube,
@@ -383,6 +386,10 @@ pub async fn populate_videos(title: &Title<'_>) -> anyhow::Result<()> {
             tmdb_video.published_at.unwrap_or(Utc::now()),
         )
         .await;
+
+        if result.is_ok() {
+            break;
+        }
     }
 
     Ok(())

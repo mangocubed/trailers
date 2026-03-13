@@ -11,18 +11,27 @@ pub struct MutationRoot;
 #[Object]
 impl MutationRoot {
     #[graphql(guard = "UserGuard")]
+    async fn create_user_title_tie(
+        &self,
+        ctx: &Context<'_>,
+        input: UserTitleTieInputObject,
+    ) -> Result<UserTitleTieObject> {
+        let user = ctx.user();
+        let title = commands::get_title_by_id(input.title_id, None, None).await?;
+
+        Ok(commands::get_or_insert_user_title_tie(user, &title)
+            .await
+            .map(UserTitleTieObject)?)
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn update_bookmark(&self, ctx: &Context<'_>, input: UserTitleTieInputObject) -> Result<UserTitleTieObject> {
         let user = ctx.user();
         let title = commands::get_title_by_id(input.title_id, None, None).await?;
         let user_title_tie = commands::get_or_insert_user_title_tie(user, &title).await?;
-        let video = if let Some(video_id) = input.video_id {
-            Some(commands::get_video_by_id(video_id).await?)
-        } else {
-            None
-        };
 
         Ok(
-            commands::update_user_title_tie_bookmark(&user_title_tie, input.is_checked, video.as_ref())
+            commands::update_user_title_tie_bookmark(&user_title_tie, input.is_checked)
                 .await
                 .map(UserTitleTieObject)?,
         )
@@ -33,17 +42,10 @@ impl MutationRoot {
         let user = ctx.user();
         let title = commands::get_title_by_id(input.title_id, None, None).await?;
         let user_title_tie = commands::get_or_insert_user_title_tie(user, &title).await?;
-        let video = if let Some(video_id) = input.video_id {
-            Some(commands::get_video_by_id(video_id).await?)
-        } else {
-            None
-        };
 
-        Ok(
-            commands::update_user_title_tie_like(&user_title_tie, input.is_checked, video.as_ref())
-                .await
-                .map(UserTitleTieObject)?,
-        )
+        Ok(commands::update_user_title_tie_like(&user_title_tie, input.is_checked)
+            .await
+            .map(UserTitleTieObject)?)
     }
 
     #[graphql(guard = "UserGuard")]
@@ -51,14 +53,9 @@ impl MutationRoot {
         let user = ctx.user();
         let title = commands::get_title_by_id(input.title_id, None, None).await?;
         let user_title_tie = commands::get_or_insert_user_title_tie(user, &title).await?;
-        let video = if let Some(video_id) = input.video_id {
-            Some(commands::get_video_by_id(video_id).await?)
-        } else {
-            None
-        };
 
         Ok(
-            commands::update_user_title_tie_watched(&user_title_tie, input.is_checked, video.as_ref())
+            commands::update_user_title_tie_watched(&user_title_tie, input.is_checked)
                 .await
                 .map(UserTitleTieObject)?,
         )

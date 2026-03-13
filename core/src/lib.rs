@@ -47,7 +47,7 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
 pub struct JobsStorage {
     pub new_user: RedisStorage<NewUserJob>,
     pub populate: RedisStorage<PopulateJob>,
-    pub video_recommendations: RedisStorage<TitleRecommendationsJob>,
+    pub title_recommendations: RedisStorage<TitleRecommendationsJob>,
 }
 
 impl JobsStorage {
@@ -55,7 +55,7 @@ impl JobsStorage {
         Self {
             new_user: Self::storage().await,
             populate: Self::storage().await,
-            video_recommendations: Self::storage().await,
+            title_recommendations: Self::storage().await,
         }
     }
 
@@ -83,8 +83,8 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
-    pub async fn push_video_recommendations(&self, user: &User) {
-        self.video_recommendations
+    pub async fn push_title_recommendations(&self, user: &User) {
+        self.title_recommendations
             .clone()
             .push(TitleRecommendationsJob { user_id: user.id })
             .await

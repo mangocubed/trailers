@@ -48,7 +48,6 @@ pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&s
             CASE WHEN $3::text IS NOT NULL THEN
                 COALESCE(ts_rank(search, websearch_to_tsquery($3)), 0) ELSE 0
             END AS "search_rank!",
-            (SELECT created_at FROM user_title_ties WHERE title_id = $1 AND user_id = $2 LIMIT 1) AS viewed_at,
             created_at,
             updated_at
         FROM titles WHERE id = $1 LIMIT 1"#,
@@ -80,7 +79,6 @@ pub async fn get_title_by_tmdb_id<'a>(media_type: TitleMediaType, tmdb_id: i32) 
             released_on,
             0 AS "relevance!",
             0::float4 AS "search_rank!",
-            NULL::timestamptz AS viewed_at,
             created_at,
             updated_at
         FROM titles WHERE media_type = $1 AND tmdb_id = $2 LIMIT 1"#,
@@ -150,7 +148,6 @@ pub async fn insert_or_update_title<'a>(
             released_on,
             0 AS "relevance!",
             0::float4 AS "search_rank!",
-            NULL::timestamptz AS viewed_at,
             created_at,
             updated_at"#,
         media_type as _,    // $1
@@ -219,7 +216,6 @@ pub async fn paginate_titles<'a>(
                     CASE WHEN $6::text IS NOT NULL THEN
                         COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0)
                     END AS "search_rank!",
-                    (SELECT created_at FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) AS viewed_at,
                     t.created_at,
                     t.updated_at
                 FROM titles AS t LEFT JOIN title_recommendations AS tr ON t.id = tr.title_id AND tr.user_id = $5

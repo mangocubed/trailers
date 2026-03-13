@@ -1,7 +1,7 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use crate::models::{Title, User, UserTitleTie, Video};
+use crate::models::{Title, User, UserTitleTie};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::{db_pool, jobs_storage};
 
@@ -97,56 +97,41 @@ pub async fn paginate_user_title_ties(
 pub async fn update_user_title_tie_bookmark(
     user_title_tie: &UserTitleTie,
     is_checked: bool,
-    video: Option<&Video<'_>>,
 ) -> sqlx::Result<UserTitleTie> {
     let db_pool = db_pool().await;
-    let (bookmarked_at, bookmarked_video_id) = if is_checked {
-        (Some(Utc::now()), video.map(|v| v.id))
-    } else {
-        (None, None)
-    };
+    let bookmarked_at = if is_checked { Some(Utc::now()) } else { None };
 
     let user_title_tie = sqlx::query_as!(
         UserTitleTie,
-        "UPDATE user_title_ties SET bookmarked_at = $2, bookmarked_video_id = $3 WHERE id = $1 RETURNING *",
-        user_title_tie.id,   // $1
-        bookmarked_at,       // $2
-        bookmarked_video_id, // $3
+        "UPDATE user_title_ties SET bookmarked_at = $2 WHERE id = $1 RETURNING *",
+        user_title_tie.id, // $1
+        bookmarked_at,     // $2
     )
     .fetch_one(db_pool)
     .await?;
 
     if let Ok(user) = user_title_tie.user().await {
-        jobs_storage().await.push_video_recommendations(&user).await;
+        jobs_storage().await.push_title_recommendations(&user).await;
     }
 
     Ok(user_title_tie)
 }
 
-pub async fn update_user_title_tie_like(
-    user_title_tie: &UserTitleTie,
-    is_checked: bool,
-    video: Option<&Video<'_>>,
-) -> sqlx::Result<UserTitleTie> {
+pub async fn update_user_title_tie_like(user_title_tie: &UserTitleTie, is_checked: bool) -> sqlx::Result<UserTitleTie> {
     let db_pool = db_pool().await;
-    let (liked_at, liked_video_id) = if is_checked {
-        (Some(Utc::now()), video.map(|v| v.id))
-    } else {
-        (None, None)
-    };
+    let liked_at = if is_checked { Some(Utc::now()) } else { None };
 
     let user_title_tie = sqlx::query_as!(
         UserTitleTie,
-        "UPDATE user_title_ties SET liked_at = $2, liked_video_id = $3 WHERE id = $1 RETURNING *",
+        "UPDATE user_title_ties SET liked_at = $2 WHERE id = $1 RETURNING *",
         user_title_tie.id, // $1
         liked_at,          // $2
-        liked_video_id,    // $3
     )
     .fetch_one(db_pool)
     .await?;
 
     if let Ok(user) = user_title_tie.user().await {
-        jobs_storage().await.push_video_recommendations(&user).await;
+        jobs_storage().await.push_title_recommendations(&user).await;
     }
 
     Ok(user_title_tie)
@@ -155,27 +140,21 @@ pub async fn update_user_title_tie_like(
 pub async fn update_user_title_tie_watched(
     user_title_tie: &UserTitleTie,
     is_checked: bool,
-    video: Option<&Video<'_>>,
 ) -> sqlx::Result<UserTitleTie> {
     let db_pool = db_pool().await;
-    let (watched_at, watched_video_id) = if is_checked {
-        (Some(Utc::now()), video.map(|v| v.id))
-    } else {
-        (None, None)
-    };
+    let watched_at = if is_checked { Some(Utc::now()) } else { None };
 
     let user_title_tie = sqlx::query_as!(
         UserTitleTie,
-        "UPDATE user_title_ties SET watched_at = $2, watched_video_id = $3 WHERE id = $1 RETURNING *",
+        "UPDATE user_title_ties SET watched_at = $2 WHERE id = $1 RETURNING *",
         user_title_tie.id, // $1
         watched_at,        // $2
-        watched_video_id,  // $3
     )
     .fetch_one(db_pool)
     .await?;
 
     if let Ok(user) = user_title_tie.user().await {
-        jobs_storage().await.push_video_recommendations(&user).await;
+        jobs_storage().await.push_title_recommendations(&user).await;
     }
 
     Ok(user_title_tie)

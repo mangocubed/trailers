@@ -41,7 +41,6 @@ pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&s
             overview,
             language,
             runtime,
-            is_adult,
             released_on,
             CASE WHEN $2::uuid IS NOT NULL THEN
                 COALESCE((SELECT relevance FROM title_recommendations WHERE title_id = $1 AND user_id = $2), 0) ELSE 0
@@ -75,7 +74,6 @@ pub async fn get_title_by_tmdb_id<'a>(media_type: TitleMediaType, tmdb_id: i32) 
             overview,
             language,
             runtime,
-            is_adult,
             released_on,
             0 AS "relevance!",
             0::float4 AS "search_rank!",
@@ -144,7 +142,6 @@ pub async fn insert_or_update_title<'a>(
             overview,
             language,
             runtime,
-            is_adult,
             released_on,
             0 AS "relevance!",
             0::float4 AS "search_rank!",
@@ -203,52 +200,107 @@ pub async fn paginate_titles<'a>(
             sqlx::query_as!(
                 Title,
                 r#"SELECT
-                    t.id,
+                    id as "id!",
                     media_type as "media_type!: TitleMediaType",
-                    tmdb_id,
+                    tmdb_id as "tmdb_id!",
                     tmdb_backdrop_path,
                     tmdb_poster_path,
                     imdb_id,
-                    name,
-                    overview,
-                    language,
+                    name as "name!",
+                    overview as "overview!",
+                    language as "language!",
                     runtime,
-                    is_adult,
                     released_on,
-                    COALESCE(tr.relevance, 0) AS "relevance!",
-                    CASE $6 WHEN '' THEN 0 ELSE COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0)
-                    END AS "search_rank!",
-                    t.created_at,
-                    t.updated_at
-                FROM titles AS t LEFT JOIN title_recommendations AS tr ON t.id = tr.title_id AND tr.user_id = $5
-                WHERE (
-                        $1::uuid IS NULL OR COALESCE(tr.relevance, 0) < $2
-                        OR (
-                            COALESCE(tr.relevance, 0) = $2 AND $6 != ''
-                            AND COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) < $3
-                        ) OR (
-                            COALESCE(tr.relevance, 0) = $2
-                            AND ($6 = '' OR COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) = $3)
-                            AND t.created_at < $4
-                        ) OR (t.created_at = $4 AND t.id < $1)
-                    ) AND (
-                        $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
-                        OR overview ILIKE '%'||$6||'%'
-                    ) AND (
-                        $7 IS TRUE OR $5 IS NULL
-                        OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
-                    ) AND (
-                        tr.id IS NOT NULL
-                        OR (
+                    relevance as "relevance!",
+                    search_rank as "search_rank!",
+                    created_at as "created_at!",
+                    updated_at
+                FROM (
+                    (SELECT
+                        t.id,
+                        media_type,
+                        tmdb_id,
+                        tmdb_backdrop_path,
+                        tmdb_poster_path,
+                        imdb_id,
+                        name,
+                        overview,
+                        language,
+                        runtime,
+                        released_on,
+                        tr.relevance,
+                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
+                        t.created_at,
+                        t.updated_at
+                    FROM titles AS t JOIN title_recommendations AS tr ON tr.user_id = $5 AND t.id = tr.title_id
+                    WHERE (
+                            $1::uuid IS NULL OR tr.relevance < $2
+                            OR (tr.relevance = $2 AND $6 != '' AND ts_rank(search, websearch_to_tsquery($6)) < $3)
+                            OR (
+                                tr.relevance = $2
+                                AND ($6 = '' OR ts_rank(search, websearch_to_tsquery($6)) = $3)
+                                AND t.created_at < $4
+                            ) OR (t.created_at = $4 AND t.id < $1)
+                        ) AND (
+                            $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
+                            OR overview ILIKE '%'||$6||'%'
+                        ) AND (
+                            $7 IS TRUE OR $5 IS NULL
+                            OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
+                        ) AND (
+                            tr.id IS NOT NULL
+                            OR (
+                                SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
+                            ) IS NOT NULL
+                        )
+                    ORDER BY
+                        CASE WHEN $5 IS NULL THEN NULL ELSE tr.relevance END DESC,
+                        CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
+                        t.created_at DESC,
+                        t.id DESC
+                    LIMIT $8)
+                    UNION ALL
+                    (SELECT
+                        t.id,
+                        media_type,
+                        tmdb_id,
+                        tmdb_backdrop_path,
+                        tmdb_poster_path,
+                        imdb_id,
+                        name,
+                        overview,
+                        language,
+                        runtime,
+                        released_on,
+                        0 AS relevance,
+                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
+                        t.created_at,
+                        t.updated_at
+                    FROM titles AS t
+                    WHERE (
+                            $1::uuid IS NULL
+                            OR ($6 != '' AND ts_rank(search, websearch_to_tsquery($6)) < $3)
+                            OR (($6 = '' OR ts_rank(search, websearch_to_tsquery($6)) = $3) AND t.created_at < $4)
+                            OR (t.created_at = $4 AND t.id < $1)
+                        ) AND (
+                            $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
+                            OR overview ILIKE '%'||$6||'%'
+                        ) AND (
+                            $5 IS NULL OR (
+                                SELECT id FROM title_recommendations WHERE user_id = $5 AND title_id = t.id LIMIT 1
+                            ) IS NULL
+                        ) AND (
+                            $7 IS TRUE OR $5 IS NULL
+                            OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
+                        ) AND (
                             SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
                         ) IS NOT NULL
-                    )
-                ORDER BY
-                    CASE WHEN $5 IS NULL THEN NULL ELSE COALESCE(tr.relevance, 0) END DESC,
-                    CASE $6 WHEN '' THEN NULL ELSE COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) END DESC,
-                    created_at DESC,
-                    id DESC
-                LIMIT $8"#,
+                    ORDER BY
+                        CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
+                        created_at DESC,
+                        id DESC
+                    LIMIT $8)
+                ) LIMIT $8"#,
                 cursor_id,          // $1
                 cursor_relevance,   // $2
                 cursor_search_rank, // $3

@@ -26,6 +26,7 @@ pub async fn delete_title(title: &Title<'_>) -> sqlx::Result<()> {
 pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&str>) -> sqlx::Result<Title<'a>> {
     let db_pool = db_pool().await;
     let user_id = user.map(|u| u.id);
+    let query = query.unwrap_or_default().trim();
 
     sqlx::query_as!(
         Title,
@@ -45,8 +46,7 @@ pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&s
             CASE WHEN $2::uuid IS NOT NULL THEN
                 COALESCE((SELECT relevance FROM title_recommendations WHERE title_id = $1 AND user_id = $2), 0) ELSE 0
             END AS "relevance!",
-            CASE WHEN $3::text IS NOT NULL THEN
-                COALESCE(ts_rank(search, websearch_to_tsquery($3)), 0) ELSE 0
+            CASE $3 WHEN '' THEN 0 ELSE COALESCE(ts_rank(search, websearch_to_tsquery($3)), 0)
             END AS "search_rank!",
             created_at,
             updated_at
@@ -187,7 +187,7 @@ pub async fn paginate_titles<'a>(
     include_viewed: Option<bool>,
 ) -> CursorPage<Title<'a>> {
     let db_pool = db_pool().await;
-    let query = query.unwrap_or_default();
+    let query = query.unwrap_or_default().trim();
     let include_viewed = include_viewed.unwrap_or_default();
 
     CursorPage::new(
@@ -216,15 +216,21 @@ pub async fn paginate_titles<'a>(
                     is_adult,
                     released_on,
                     COALESCE(tr.relevance, 0) AS "relevance!",
-                    COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) AS "search_rank!",
+                    CASE $6 WHEN '' THEN 0 ELSE COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0)
+                    END AS "search_rank!",
                     t.created_at,
                     t.updated_at
                 FROM titles AS t LEFT JOIN title_recommendations AS tr ON t.id = tr.title_id AND tr.user_id = $5
                 WHERE (
                         $1::uuid IS NULL OR COALESCE(tr.relevance, 0) < $2
-                        OR (COALESCE(tr.relevance, 0) = $2 AND COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) < $3)
-                        OR (COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) = $3 AND t.created_at < $4)
-                        OR (t.created_at = $4 AND t.id < $1)
+                        OR (
+                            COALESCE(tr.relevance, 0) = $2 AND $6 != ''
+                            AND COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) < $3
+                        ) OR (
+                            COALESCE(tr.relevance, 0) = $2
+                            AND ($6 = '' OR COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) = $3)
+                            AND t.created_at < $4
+                        ) OR (t.created_at = $4 AND t.id < $1)
                     ) AND (
                         $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
                         OR overview ILIKE '%'||$6||'%'

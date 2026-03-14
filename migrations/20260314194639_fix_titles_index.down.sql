@@ -1,0 +1,1 @@
+-- DROP INDEX index_titles_on_created_at;

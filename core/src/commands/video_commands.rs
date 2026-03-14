@@ -178,10 +178,10 @@ pub async fn paginate_videos<'a>(cursor_params: CursorParams, title: Option<&'a 
                     published_at,
                     created_at,
                     updated_at
-                FROM videos AS v
+                FROM videos
                 WHERE downloaded_at IS NOT NULL
                     AND (
-                        $1::uuid IS NULL OR $2::integer IS NULL OR $3::timestamptz IS NULL
+                        $1::uuid IS NULL
                         OR (duration_secs < $2) OR (duration_secs = $2 AND published_at < $3)
                         OR (published_at = $3 AND id < $1)
                     ) AND ($4::uuid IS NULL OR title_id = $4)

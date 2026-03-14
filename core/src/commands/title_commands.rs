@@ -183,18 +183,21 @@ pub async fn insert_or_update_title<'a>(
 pub async fn paginate_titles<'a>(
     cursor_params: CursorParams,
     user: Option<&User>,
-    query: Option<String>,
+    query: Option<&str>,
     include_viewed: Option<bool>,
 ) -> CursorPage<Title<'a>> {
     let db_pool = db_pool().await;
+    let query = query.unwrap_or_default();
+    let include_viewed = include_viewed.unwrap_or_default();
 
     CursorPage::new(
         &cursor_params,
         |node: &Title| node.id,
-        async |after| get_title_by_id(after, None, None).await.ok(),
+        async |after| get_title_by_id(after, user, Some(query)).await.ok(),
         async |cursor_resource, limit| {
-            let (cursor_id, cursor_relevance, cursor_search_rank, cursor_created_at) =
-                cursor_resource.map(|c| (Some(c.id), Some(c.relevance), Some(c.search_rank), Some(c.created_at))).unwrap_or_default();
+            let (cursor_id, cursor_relevance, cursor_search_rank, cursor_created_at) = cursor_resource
+                .map(|c| (Some(c.id), Some(c.relevance), Some(c.search_rank), Some(c.created_at)))
+                .unwrap_or_default();
             let user_id = user.map(|u| u.id);
 
             sqlx::query_as!(
@@ -213,9 +216,7 @@ pub async fn paginate_titles<'a>(
                     is_adult,
                     released_on,
                     COALESCE(tr.relevance, 0) AS "relevance!",
-                    CASE WHEN $6::text IS NOT NULL THEN
-                        COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0)
-                    END AS "search_rank!",
+                    COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) AS "search_rank!",
                     t.created_at,
                     t.updated_at
                 FROM titles AS t LEFT JOIN title_recommendations AS tr ON t.id = tr.title_id AND tr.user_id = $5
@@ -225,12 +226,17 @@ pub async fn paginate_titles<'a>(
                         OR (COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) = $3 AND t.created_at < $4)
                         OR (t.created_at = $4 AND t.id < $1)
                     ) AND (
-                        $6 IS NULL OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
+                        $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
                         OR overview ILIKE '%'||$6||'%'
                     ) AND (
-                        $7 IS TRUE
+                        $7 IS TRUE OR $5 IS NULL
                         OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
-                    ) AND (tr.id IS NOT NULL OR (SELECT id FROM videos AS v WHERE title_id = t.id LIMIT 1) IS NOT NULL)
+                    ) AND (
+                        tr.id IS NOT NULL
+                        OR (
+                            SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
+                        ) IS NOT NULL
+                    )
                 ORDER BY "relevance!" DESC, "search_rank!" DESC, created_at DESC, id DESC LIMIT $8"#,
                 cursor_id,          // $1
                 cursor_relevance,   // $2

@@ -44,7 +44,7 @@ impl QueryRoot {
                 let first = first.map(|v| v as u8).unwrap_or(10);
                 let user = ctx.user_opt();
                 let cursor_page =
-                    commands::paginate_titles(CursorParams { after, first }, user, q, include_viewed).await;
+                    commands::paginate_titles(CursorParams { after, first }, user, q.as_deref(), include_viewed).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(

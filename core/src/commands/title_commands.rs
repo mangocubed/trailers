@@ -243,7 +243,12 @@ pub async fn paginate_titles<'a>(
                             SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
                         ) IS NOT NULL
                     )
-                ORDER BY "relevance!" DESC, "search_rank!" DESC, created_at DESC, id DESC LIMIT $8"#,
+                ORDER BY
+                    CASE WHEN $5 IS NULL THEN NULL ELSE COALESCE(tr.relevance, 0) END DESC,
+                    CASE $6 WHEN '' THEN NULL ELSE COALESCE(ts_rank(search, websearch_to_tsquery($6)), 0) END DESC,
+                    created_at DESC,
+                    id DESC
+                LIMIT $8"#,
                 cursor_id,          // $1
                 cursor_relevance,   // $2
                 cursor_search_rank, // $3

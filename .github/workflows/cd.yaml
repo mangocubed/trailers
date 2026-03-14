@@ -103,7 +103,9 @@ jobs:
               with:
                   name: trailers_cli_build
                   path: artifact/
-            - run: ./artifact/trailers-cli graphql-schema | tee ./trailers-${{ github.ref_name }}.graphql
+            - run: |
+                  chmod +x ./artifact/trailers-cli
+                  ./artifact/trailers-cli graphql-schema | tee ./trailers-${{ github.ref_name }}.graphql
             - uses: actions/upload-artifact@v7
               with:
                   name: trailers_graphql_schema

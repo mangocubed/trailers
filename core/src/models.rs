@@ -69,7 +69,6 @@ pub struct Title<'a> {
     pub overview: Cow<'a, str>,
     pub language: Cow<'a, str>,
     pub runtime: Option<PgInterval>,
-    pub is_adult: bool,
     pub released_on: Option<NaiveDate>,
     pub relevance: i64,
     pub search_rank: f32,

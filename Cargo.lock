@@ -3799,7 +3799,7 @@ dependencies = [
 
 [[package]]
 name = "trailers-api"
-version = "0.0.0-alpha.6"
+version = "0.0.0-alpha.7"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -3816,7 +3816,7 @@ dependencies = [
 
 [[package]]
 name = "trailers-cli"
-version = "0.0.0-alpha.6"
+version = "0.0.0-alpha.7"
 dependencies = [
  "chrono",
  "clap",
@@ -3827,7 +3827,7 @@ dependencies = [
 
 [[package]]
 name = "trailers-core"
-version = "0.0.0-alpha.6"
+version = "0.0.0-alpha.7"
 dependencies = [
  "anyhow",
  "apalis",
@@ -3851,7 +3851,7 @@ dependencies = [
 
 [[package]]
 name = "trailers-monitor"
-version = "0.0.0-alpha.6"
+version = "0.0.0-alpha.7"
 dependencies = [
  "anyhow",
  "apalis",

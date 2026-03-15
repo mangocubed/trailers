@@ -234,13 +234,11 @@ pub async fn paginate_titles<'a>(
                         runtime,
                         released_on,
                         tr.relevance,
-                        COALESCE(ts.popularity, 0) AS popularity,
+                        COALESCE((SELECT popularity FROM title_stats WHERE title_id = t.id LIMIT 1), 0) AS popularity,
                         CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
                         t.created_at,
                         t.updated_at
-                    FROM titles AS t
-                    JOIN title_recommendations AS tr ON tr.user_id = $5 AND t.id = tr.title_id
-                    LEFT JOIN title_stats AS ts ON ts.title_id = t.id
+                    FROM titles AS t JOIN title_recommendations AS tr ON tr.user_id = $5 AND t.id = tr.title_id
                     WHERE (
                             $1::uuid IS NULL
                             OR (tr.relevance, ts_rank(search, websearch_to_tsquery($6)), t.id) < ($2, $4, $1)
@@ -275,16 +273,14 @@ pub async fn paginate_titles<'a>(
                         runtime,
                         released_on,
                         0 AS relevance,
-                        COALESCE(ts.popularity, 0) AS popularity,
+                        ts.popularity,
                         CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
                         t.created_at,
                         t.updated_at
-                    FROM titles AS t LEFT JOIN title_stats AS ts ON ts.title_id = t.id
+                    FROM titles AS t JOIN title_stats AS ts ON ts.title_id = t.id
                     WHERE (
                             $1::uuid IS NULL
-                            OR (
-                                COALESCE(ts.popularity, 0), ts_rank(search, websearch_to_tsquery($6)), t.id
-                            ) < ($3, $4, $1)
+                            OR (ts.popularity, ts_rank(search, websearch_to_tsquery($6)), t.id) < ($3, $4, $1)
                         ) AND (
                             $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
                             OR overview ILIKE '%'||$6||'%'
@@ -299,7 +295,46 @@ pub async fn paginate_titles<'a>(
                             SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
                         ) IS NOT NULL
                     ORDER BY
-                        popularity DESC,
+                        ts.popularity DESC,
+                        CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
+                        id DESC
+                    LIMIT $8)
+                    UNION ALL
+                    (SELECT
+                        t.id,
+                        media_type,
+                        tmdb_id,
+                        tmdb_backdrop_path,
+                        tmdb_poster_path,
+                        imdb_id,
+                        name,
+                        overview,
+                        language,
+                        runtime,
+                        released_on,
+                        0 AS relevance,
+                        0 AS popularity,
+                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
+                        t.created_at,
+                        t.updated_at
+                    FROM titles AS t
+                    WHERE
+                        ($1::uuid IS NULL OR (ts_rank(search, websearch_to_tsquery($6)), t.id) < ($4, $1))
+                        AND (
+                            $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
+                            OR overview ILIKE '%'||$6||'%'
+                        ) AND (
+                            $5 IS NULL OR (
+                                SELECT id FROM title_recommendations WHERE user_id = $5 AND title_id = t.id LIMIT 1
+                            ) IS NULL
+                        ) AND (
+                            $7 IS TRUE OR $5 IS NULL
+                            OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
+                        ) AND (SELECT id FROM title_stats AS ts WHERE ts.title_id = t.id LIMIT 1) IS NULL
+                        AND (
+                            SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
+                        ) IS NOT NULL
+                    ORDER BY
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
                         id DESC
                     LIMIT $8)

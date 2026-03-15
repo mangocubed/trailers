@@ -110,8 +110,10 @@ pub async fn update_user_title_tie_bookmark(
     .fetch_one(db_pool)
     .await?;
 
-    if let Ok(user) = user_title_tie.user().await {
-        jobs_storage().await.push_title_recommendations(&user).await;
+    if let Ok(user) = user_title_tie.user().await
+        && let Ok(title) = user_title_tie.title().await
+    {
+        jobs_storage().await.push_title_recommendations(&user, &title).await;
     }
 
     Ok(user_title_tie)
@@ -130,8 +132,10 @@ pub async fn update_user_title_tie_like(user_title_tie: &UserTitleTie, is_checke
     .fetch_one(db_pool)
     .await?;
 
-    if let Ok(user) = user_title_tie.user().await {
-        jobs_storage().await.push_title_recommendations(&user).await;
+    if let Ok(user) = user_title_tie.user().await
+        && let Ok(title) = user_title_tie.title().await
+    {
+        jobs_storage().await.push_title_recommendations(&user, &title).await;
     }
 
     Ok(user_title_tie)
@@ -153,8 +157,10 @@ pub async fn update_user_title_tie_watched(
     .fetch_one(db_pool)
     .await?;
 
-    if let Ok(user) = user_title_tie.user().await {
-        jobs_storage().await.push_title_recommendations(&user).await;
+    if let Ok(user) = user_title_tie.user().await
+        && let Ok(title) = user_title_tie.title().await
+    {
+        jobs_storage().await.push_title_recommendations(&user, &title).await;
     }
 
     Ok(user_title_tie)

@@ -21,7 +21,7 @@ pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
 use crate::jobs::{NewUserJob, PopulateJob, TitleRecommendationsJob};
-use crate::models::User;
+use crate::models::{Title, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
@@ -83,10 +83,13 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
-    pub async fn push_title_recommendations(&self, user: &User) {
+    pub async fn push_title_recommendations(&self, user: &User, title: &Title<'_>) {
         self.title_recommendations
             .clone()
-            .push(TitleRecommendationsJob { user_id: user.id })
+            .push(TitleRecommendationsJob {
+                user_id: user.id,
+                title_id: title.id,
+            })
             .await
             .expect("Could not store job");
     }

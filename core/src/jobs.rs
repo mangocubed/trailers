@@ -16,4 +16,5 @@ pub struct PopulateJob {
 #[derive(Deserialize, Serialize)]
 pub struct TitleRecommendationsJob {
     pub user_id: Uuid,
+    pub title_id: Uuid,
 }

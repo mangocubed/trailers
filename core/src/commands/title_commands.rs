@@ -8,7 +8,7 @@ use crate::enums::TitleMediaType;
 use crate::models::{Title, User};
 use crate::pagination::{CursorPage, CursorParams};
 
-use super::download_file;
+use super::{download_file, get_or_insert_title_stat};
 
 pub async fn delete_title(title: &Title<'_>) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
@@ -45,8 +45,8 @@ pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&s
             CASE WHEN $2::uuid IS NOT NULL THEN
                 COALESCE((SELECT relevance FROM title_recommendations WHERE title_id = $1 AND user_id = $2), 0) ELSE 0
             END AS "relevance!",
-            CASE $3 WHEN '' THEN 0 ELSE COALESCE(ts_rank(search, websearch_to_tsquery($3)), 0)
-            END AS "search_rank!",
+            (SELECT popularity FROM title_stats WHERE title_id = $1 LIMIT 1) AS "popularity!",
+            CASE $3 WHEN '' THEN 0 ELSE COALESCE(ts_rank(search, websearch_to_tsquery($3)), 0) END AS "search_rank!",
             created_at,
             updated_at
         FROM titles WHERE id = $1 LIMIT 1"#,
@@ -76,10 +76,11 @@ pub async fn get_title_by_tmdb_id<'a>(media_type: TitleMediaType, tmdb_id: i32) 
             runtime,
             released_on,
             0 AS "relevance!",
+            COALESCE((SELECT popularity FROM title_stats WHERE title_id = t.id LIMIT 1), 0) AS "popularity!",
             0::float4 AS "search_rank!",
             created_at,
             updated_at
-        FROM titles WHERE media_type = $1 AND tmdb_id = $2 LIMIT 1"#,
+        FROM titles AS t WHERE media_type = $1 AND tmdb_id = $2 LIMIT 1"#,
         media_type as TitleMediaType, // $1
         tmdb_id                       // $2
     )
@@ -144,6 +145,7 @@ pub async fn insert_or_update_title<'a>(
             runtime,
             released_on,
             0 AS "relevance!",
+            0 AS "popularity!",
             0::float4 AS "search_rank!",
             created_at,
             updated_at"#,
@@ -174,6 +176,8 @@ pub async fn insert_or_update_title<'a>(
         let _ = download_file(source_url, dest_url).await;
     }
 
+    let _ = get_or_insert_title_stat(&title).await;
+
     Ok(title)
 }
 
@@ -192,8 +196,8 @@ pub async fn paginate_titles<'a>(
         |node: &Title| node.id,
         async |after| get_title_by_id(after, user, Some(query)).await.ok(),
         async |cursor_resource, limit| {
-            let (cursor_id, cursor_relevance, cursor_search_rank, cursor_created_at) = cursor_resource
-                .map(|c| (Some(c.id), Some(c.relevance), Some(c.search_rank), Some(c.created_at)))
+            let (cursor_id, cursor_relevance, cursor_popularity, cursor_search_rank) = cursor_resource
+                .map(|c| (Some(c.id), Some(c.relevance), Some(c.popularity), Some(c.search_rank)))
                 .unwrap_or_default();
             let user_id = user.map(|u| u.id);
 
@@ -212,6 +216,7 @@ pub async fn paginate_titles<'a>(
                     runtime,
                     released_on,
                     relevance as "relevance!",
+                    popularity as "popularity!",
                     search_rank as "search_rank!",
                     created_at as "created_at!",
                     updated_at
@@ -229,23 +234,21 @@ pub async fn paginate_titles<'a>(
                         runtime,
                         released_on,
                         tr.relevance,
+                        COALESCE(ts.popularity, 0) AS popularity,
                         CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
                         t.created_at,
                         t.updated_at
-                    FROM titles AS t JOIN title_recommendations AS tr ON tr.user_id = $5 AND t.id = tr.title_id
+                    FROM titles AS t
+                    JOIN title_recommendations AS tr ON tr.user_id = $5 AND t.id = tr.title_id
+                    LEFT JOIN title_stats AS ts ON ts.title_id = t.id
                     WHERE (
-                            $1::uuid IS NULL OR tr.relevance < $2
-                            OR (tr.relevance = $2 AND $6 != '' AND ts_rank(search, websearch_to_tsquery($6)) < $3)
-                            OR (
-                                tr.relevance = $2
-                                AND ($6 = '' OR ts_rank(search, websearch_to_tsquery($6)) = $3)
-                                AND t.created_at < $4
-                            ) OR (t.created_at = $4 AND t.id < $1)
+                            $1::uuid IS NULL
+                            OR (tr.relevance, ts_rank(search, websearch_to_tsquery($6)), t.id) < ($2, $4, $1)
                         ) AND (
                             $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
                             OR overview ILIKE '%'||$6||'%'
                         ) AND (
-                            $7 IS TRUE OR $5 IS NULL
+                            $7 IS TRUE
                             OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
                         ) AND (
                             tr.id IS NOT NULL
@@ -254,9 +257,8 @@ pub async fn paginate_titles<'a>(
                             ) IS NOT NULL
                         )
                     ORDER BY
-                        CASE WHEN $5 IS NULL THEN NULL ELSE tr.relevance END DESC,
+                        tr.relevance DESC,
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
-                        t.created_at DESC,
                         t.id DESC
                     LIMIT $8)
                     UNION ALL
@@ -273,15 +275,16 @@ pub async fn paginate_titles<'a>(
                         runtime,
                         released_on,
                         0 AS relevance,
+                        COALESCE(ts.popularity, 0) AS popularity,
                         CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
                         t.created_at,
                         t.updated_at
-                    FROM titles AS t
+                    FROM titles AS t LEFT JOIN title_stats AS ts ON ts.title_id = t.id
                     WHERE (
                             $1::uuid IS NULL
-                            OR ($6 != '' AND ts_rank(search, websearch_to_tsquery($6)) < $3)
-                            OR (($6 = '' OR ts_rank(search, websearch_to_tsquery($6)) = $3) AND t.created_at < $4)
-                            OR (t.created_at = $4 AND t.id < $1)
+                            OR (
+                                COALESCE(ts.popularity, 0), ts_rank(search, websearch_to_tsquery($6)), t.id
+                            ) < ($3, $4, $1)
                         ) AND (
                             $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
                             OR overview ILIKE '%'||$6||'%'
@@ -296,15 +299,15 @@ pub async fn paginate_titles<'a>(
                             SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
                         ) IS NOT NULL
                     ORDER BY
+                        popularity DESC,
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
-                        created_at DESC,
                         id DESC
                     LIMIT $8)
                 ) LIMIT $8"#,
                 cursor_id,          // $1
                 cursor_relevance,   // $2
-                cursor_search_rank, // $3
-                cursor_created_at,  // $4
+                cursor_popularity,  // $3
+                cursor_search_rank, // $4
                 user_id,            // $5
                 query,              // $6
                 include_viewed,     // $7

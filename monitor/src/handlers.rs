@@ -39,8 +39,11 @@ pub async fn populate(job: PopulateJob) -> Result<(), BoxDynError> {
 
 pub async fn title_recommendations_handler(job: TitleRecommendationsJob) -> Result<(), BoxDynError> {
     let user = commands::get_user_by_id(job.user_id).await?;
+    let title = commands::get_title_by_id(job.title_id, None, None).await?;
+    let title_stat = title.stat().await?;
 
-    commands::update_title_recommendations(&user).await?;
+    let _ = commands::update_title_stat(&title_stat).await;
+    let _ = commands::update_title_recommendations(&user).await;
 
     Ok(())
 }

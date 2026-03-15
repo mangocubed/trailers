@@ -71,6 +71,7 @@ pub struct Title<'a> {
     pub runtime: Option<PgInterval>,
     pub released_on: Option<NaiveDate>,
     pub relevance: i64,
+    pub popularity: i64,
     pub search_rank: f32,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
@@ -122,6 +123,10 @@ impl Title<'_> {
             None
         }
     }
+
+    pub async fn stat(&self) -> sqlx::Result<TitleStat> {
+        commands::get_or_insert_title_stat(self).await
+    }
 }
 
 pub struct TitleCast<'a> {
@@ -140,6 +145,13 @@ pub struct TitleCrew<'a> {
     pub person_id: Uuid,
     pub tmdb_credit_id: Cow<'a, str>,
     pub job: TitleCrewJob,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+pub struct TitleStat {
+    pub id: Uuid,
+    pub title_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }

@@ -45,7 +45,7 @@ pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&s
             CASE WHEN $2::uuid IS NOT NULL THEN
                 COALESCE((SELECT relevance FROM title_recommendations WHERE title_id = $1 AND user_id = $2), 0) ELSE 0
             END AS "relevance!",
-            (SELECT popularity FROM title_stats WHERE title_id = $1 LIMIT 1) AS "popularity!",
+            COALESCE((SELECT popularity FROM title_stats WHERE title_id = $1 LIMIT 1), 0) AS "popularity!",
             CASE $3 WHEN '' THEN 0 ELSE COALESCE(ts_rank(search, websearch_to_tsquery($3)), 0) END AS "search_rank!",
             created_at,
             updated_at

@@ -28,9 +28,7 @@ pub async fn update_title_recommendations(user: &User) -> sqlx::Result<()> {
         r#"DELETE FROM title_recommendations AS tr
         WHERE
             user_id = $1
-            AND (
-                SELECT id FROM user_title_ties as utt WHERE utt.user_id = $1 AND utt.title_id = tr.title_id LIMIT 1
-            ) IS NOT NULL"#,
+            AND (SELECT id FROM user_title_ties WHERE user_id = $1 AND title_id = tr.title_id LIMIT 1) IS NOT NULL"#,
         user.id
     )
     .execute(db_pool)

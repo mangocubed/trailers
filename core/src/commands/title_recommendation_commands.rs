@@ -24,7 +24,7 @@ pub async fn update_title_recommendations(user: &User) -> sqlx::Result<()> {
         return Ok(());
     }
 
-    sqlx::query!(
+    let _ = sqlx::query!(
         r#"DELETE FROM title_recommendations AS tr
         WHERE
             user_id = $1
@@ -32,7 +32,7 @@ pub async fn update_title_recommendations(user: &User) -> sqlx::Result<()> {
         user.id
     )
     .execute(db_pool)
-    .await?;
+    .await;
 
     sqlx::query!(
         r#"INSERT INTO title_recommendations (user_id, title_id, relevance)

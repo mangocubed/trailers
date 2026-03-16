@@ -24,15 +24,17 @@ pub async fn update_title_recommendations(user: &User) -> sqlx::Result<()> {
         return Ok(());
     }
 
-    sqlx::query!(
+    let _ = sqlx::query!(
         r#"DELETE FROM title_recommendations AS tr
         WHERE
             user_id = $1
-            AND (SELECT id FROM user_title_ties WHERE user_id = $1 AND title_id = tr.title_id LIMIT 1) IS NOT NULL"#,
+            AND (
+                SELECT id FROM user_title_ties as utt WHERE utt.user_id = $1 AND utt.title_id = tr.title_id LIMIT 1
+            ) IS NOT NULL"#,
         user.id
     )
     .execute(db_pool)
-    .await?;
+    .await;
 
     sqlx::query!(
         r#"INSERT INTO title_recommendations (user_id, title_id, relevance)

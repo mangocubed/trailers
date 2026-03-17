@@ -41,7 +41,7 @@ impl TitleObject<'_> {
     }
 
     async fn runtime(&self) -> Option<TimeDelta> {
-        self.0.runtime.map(|value| TimeDelta::microseconds(value.microseconds))
+        self.0.runtime.0
     }
 
     async fn cast(

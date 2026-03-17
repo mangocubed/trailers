@@ -1,11 +1,14 @@
+use cached::AsyncRedisCache;
+use cached::proc_macro::io_cached;
 use url::Url;
 use uuid::Uuid;
 
+use crate::constants::CACHE_PREFIX_GET_WATCH_PROVIDER_BY_ID;
 use crate::db_pool;
 use crate::models::{Title, TitleWatchProvider, WatchProvider};
 use crate::pagination::{CursorPage, CursorParams};
 
-use super::download_file;
+use super::{async_redis_cache, download_file};
 
 async fn get_title_watch_provider_by_id(id: Uuid) -> sqlx::Result<TitleWatchProvider> {
     let db_pool = db_pool().await;
@@ -19,7 +22,12 @@ async fn get_title_watch_provider_by_id(id: Uuid) -> sqlx::Result<TitleWatchProv
     .await
 }
 
-pub async fn get_watch_provider_by_id<'a>(id: Uuid) -> sqlx::Result<WatchProvider<'a>> {
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    ty = "AsyncRedisCache<Uuid, WatchProvider<'_>>",
+    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_WATCH_PROVIDER_BY_ID).await }"##
+)]
+pub async fn get_watch_provider_by_id(id: Uuid) -> sqlx::Result<WatchProvider<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

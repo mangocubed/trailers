@@ -23,6 +23,11 @@ async fn delete_video(video: &Video<'_>) -> sqlx::Result<()> {
 
 pub fn generate_video_hls(video: &Video<'_>) -> anyhow::Result<()> {
     let hls_path = video.hls_path();
+
+    if std::fs::exists(&hls_path).unwrap_or_default() {
+        return Ok(());
+    }
+
     let hls_dir = hls_path.parent().expect("Could not get parent directory");
 
     std::fs::create_dir_all(hls_dir)?;

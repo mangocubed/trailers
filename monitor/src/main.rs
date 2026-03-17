@@ -37,13 +37,23 @@ async fn main() {
 
         WorkerBuilder::new(format!("daily-{index}"))
             .backend(CronStream::new(daily_schedule))
+            .concurrency(1)
             .enable_tracing()
             .build(handlers::daily)
+    };
+
+    let generate_video_hls_worker = |index| {
+        WorkerBuilder::new(format!("generate-video-hls-{index}"))
+            .backend(jobs_storage.generate_video_hls.clone())
+            .concurrency(1)
+            .enable_tracing()
+            .build(handlers::generate_video_hls)
     };
 
     let new_user_worker = |index| {
         WorkerBuilder::new(format!("new-user-{index}"))
             .backend(jobs_storage.new_user.clone())
+            .concurrency(1)
             .enable_tracing()
             .build(handlers::new_user)
     };
@@ -51,6 +61,7 @@ async fn main() {
     let populate_worker = |index| {
         WorkerBuilder::new(format!("populate-{index}"))
             .backend(jobs_storage.populate.clone())
+            .concurrency(1)
             .enable_tracing()
             .build(handlers::populate)
     };
@@ -58,13 +69,14 @@ async fn main() {
     let title_recommendations_worker = |index| {
         WorkerBuilder::new(format!("title-recommendations-{index}"))
             .backend(jobs_storage.title_recommendations.clone())
-            .concurrency(5)
+            .concurrency(1)
             .enable_tracing()
             .build(handlers::title_recommendations_handler)
     };
 
     Monitor::new()
         .register(daily_worker)
+        .register(generate_video_hls_worker)
         .register(new_user_worker)
         .register(populate_worker)
         .register(title_recommendations_worker)

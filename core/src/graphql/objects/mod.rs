@@ -219,6 +219,10 @@ impl VideoObject<'_> {
         self.0.url()
     }
 
+    async fn hls_url(&self) -> Option<Url> {
+        self.0.hls_url().await
+    }
+
     async fn created_at(&self) -> DateTime<Utc> {
         self.0.created_at
     }

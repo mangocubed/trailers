@@ -2,7 +2,7 @@ use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object};
 use uuid::Uuid;
 
-use crate::graphql::objects::{InfoObject, TitleObject, UserObject, VideoObject};
+use crate::graphql::objects::{InfoObject, TitleObject, UserObject};
 use crate::graphql::{CustomContext, IDExt};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
@@ -33,7 +33,6 @@ impl QueryRoot {
         after: Option<Uuid>,
         first: Option<i32>,
         include_viewed: Option<bool>,
-        #[graphql(name = "hasVideos", deprecation = "Not used anymore")] _has_videos: Option<bool>,
     ) -> async_graphql::Result<Connection<Uuid, TitleObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
@@ -67,47 +66,5 @@ impl QueryRoot {
             .await
             .map(UserObject)
             .ok()
-    }
-
-    async fn video(&self, ctx: &Context<'_>, id: ID) -> Option<VideoObject<'_>> {
-        let user = ctx.user_opt();
-        let video = commands::get_video_by_id(id.try_into_uuid().ok()?).await.ok()?;
-
-        if let Some(user) = user {
-            let _ = commands::insert_video_view(&video, user).await;
-        }
-
-        Some(VideoObject(video))
-    }
-
-    #[graphql(deprecation = "To be removed")]
-    async fn videos<'a>(
-        &self,
-        after: Option<Uuid>,
-        first: Option<i32>,
-        #[graphql(name = "includeViewed")] _include_viewed: Option<bool>,
-    ) -> async_graphql::Result<Connection<Uuid, VideoObject<'a>, EmptyFields, EmptyFields>> {
-        query(
-            after.map(|id| id.to_string()),
-            None,
-            first,
-            None,
-            |after, _before, first, _last| async move {
-                let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_videos(CursorParams { after, first }, None).await;
-
-                let mut connection = Connection::new(false, cursor_page.has_next_page);
-
-                connection.edges.extend(
-                    cursor_page
-                        .nodes
-                        .into_iter()
-                        .map(|video| Edge::new(video.id, VideoObject(video))),
-                );
-
-                Ok::<_, async_graphql::Error>(connection)
-            },
-        )
-        .await
     }
 }

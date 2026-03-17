@@ -184,7 +184,7 @@ pub async fn insert_video(
     }
 }
 
-pub async fn paginate_videos<'a>(cursor_params: CursorParams, title: Option<&'a Title<'_>>) -> CursorPage<Video<'a>> {
+pub async fn paginate_videos<'a>(cursor_params: CursorParams, title: &Title<'_>) -> CursorPage<Video<'a>> {
     let db_pool = db_pool().await;
 
     CursorPage::new(
@@ -195,7 +195,6 @@ pub async fn paginate_videos<'a>(cursor_params: CursorParams, title: Option<&'a 
             let (cursor_id, cursor_duration_secs, cursor_published_at) = cursor_resource
                 .map(|c| (Some(c.id), Some(c.duration_secs), Some(c.published_at)))
                 .unwrap_or_default();
-            let title_id = title.map(|t| t.id);
 
             sqlx::query_as!(
                 Video,
@@ -219,12 +218,12 @@ pub async fn paginate_videos<'a>(cursor_params: CursorParams, title: Option<&'a 
                         $1::uuid IS NULL
                         OR (duration_secs < $2) OR (duration_secs = $2 AND published_at < $3)
                         OR (published_at = $3 AND id < $1)
-                    ) AND ($4::uuid IS NULL OR title_id = $4)
+                    ) AND title_id = $4
                 ORDER BY orientation::text DESC, duration_secs DESC, published_at DESC, id DESC LIMIT $5"#,
                 cursor_id,            // $1
                 cursor_duration_secs, // $2
                 cursor_published_at,  // $3
-                title_id,             // $4
+                title.id,             // $4
                 limit                 // $5
             )
             .fetch_all(db_pool)

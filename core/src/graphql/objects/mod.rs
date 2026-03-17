@@ -210,11 +210,6 @@ impl VideoObject<'_> {
         self.0.id.into()
     }
 
-    #[graphql(deprecation = "To avoid infinite nesting, shouldn't be used")]
-    async fn title(&self) -> Result<TitleObject<'_>> {
-        Ok(self.0.title().await.map(TitleObject)?)
-    }
-
     async fn url(&self) -> Url {
         self.0.url()
     }

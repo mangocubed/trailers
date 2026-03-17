@@ -8,10 +8,10 @@ use sqlx::postgres::types::PgInterval;
 use url::Url;
 use uuid::Uuid;
 
-use crate::commands;
 use crate::config::STORAGE_CONFIG;
 use crate::enums::{TitleCrewJob, TitleMediaType, VideoOrientation, VideoSource, VideoType};
 use crate::identity::IdentityUser;
+use crate::{commands, jobs_storage};
 
 pub struct Genre<'a> {
     pub id: Uuid,
@@ -225,6 +225,27 @@ pub struct Video<'a> {
 }
 
 impl Video<'_> {
+    pub fn hls_path(&self) -> PathBuf {
+        STORAGE_CONFIG
+            .path
+            .join(format!("videos/hls/{}/playlist.m3u8", self.id))
+    }
+
+    pub async fn hls_url(&self) -> Option<Url> {
+        if std::fs::exists(self.hls_path()).unwrap_or_default() {
+            Some(
+                STORAGE_CONFIG
+                    .url
+                    .join(&format!("videos/hls/{}/playlist.m3u8", self.id))
+                    .unwrap(),
+            )
+        } else {
+            jobs_storage().await.push_generate_video_hls(self).await;
+
+            None
+        }
+    }
+
     pub fn path(&self) -> PathBuf {
         STORAGE_CONFIG.path.join(format!("videos/original/{}.mp4", self.id))
     }

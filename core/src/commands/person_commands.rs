@@ -1,10 +1,13 @@
+use cached::AsyncRedisCache;
+use cached::proc_macro::io_cached;
 use url::Url;
 use uuid::Uuid;
 
+use crate::constants::CACHE_PREFIX_GET_PERSON_BY_ID;
 use crate::db_pool;
 use crate::models::Person;
 
-use super::download_file;
+use super::{AsyncRedisCacheExt, async_redis_cache, download_file};
 
 pub async fn delete_person(person: &Person<'_>) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
@@ -15,6 +18,8 @@ pub async fn delete_person(person: &Person<'_>) -> sqlx::Result<()> {
     )
     .execute(db_pool)
     .await?;
+
+    remove_person_cache(person).await;
 
     Ok(())
 }
@@ -52,7 +57,12 @@ pub async fn get_or_insert_person<'a>(
     Ok(person)
 }
 
-pub async fn get_person_by_id<'a>(id: Uuid) -> sqlx::Result<Person<'a>> {
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    ty = "AsyncRedisCache<Uuid, Person<'_>>",
+    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_PERSON_BY_ID).await }"##
+)]
+pub async fn get_person_by_id(id: Uuid) -> sqlx::Result<Person<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -104,4 +114,10 @@ pub async fn insert_or_update_person(
     }
 
     Ok(())
+}
+
+pub async fn remove_person_cache(person: &Person<'_>) {
+    GET_PERSON_BY_ID
+        .cache_remove(CACHE_PREFIX_GET_PERSON_BY_ID, &person.id)
+        .await;
 }

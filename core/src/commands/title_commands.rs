@@ -1,14 +1,17 @@
+use cached::AsyncRedisCache;
+use cached::proc_macro::io_cached;
 use chrono::{NaiveDate, TimeDelta};
 use sqlx::postgres::types::PgInterval;
 use url::Url;
 use uuid::Uuid;
 
+use crate::constants::CACHE_PREFIX_GET_TITLE_BY_ID;
 use crate::db_pool;
 use crate::enums::TitleMediaType;
 use crate::models::{Title, User};
 use crate::pagination::{CursorPage, CursorParams};
 
-use super::{download_file, get_or_insert_title_stat};
+use super::{AsyncRedisCacheExt, async_redis_cache, download_file, get_or_insert_title_stat};
 
 pub async fn delete_title(title: &Title<'_>) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
@@ -20,13 +23,54 @@ pub async fn delete_title(title: &Title<'_>) -> sqlx::Result<()> {
     .execute(db_pool)
     .await?;
 
+    remove_title_cache(title).await;
+
     Ok(())
 }
 
-pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&str>) -> sqlx::Result<Title<'a>> {
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    ty = "AsyncRedisCache<Uuid, Title<'_>>",
+    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_TITLE_BY_ID).await }"##
+)]
+async fn get_cached_title_by_id(id: Uuid) -> sqlx::Result<Title<'static>> {
     let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Title,
+        r#"SELECT
+            id,
+            media_type AS "media_type!: TitleMediaType",
+            tmdb_id,
+            tmdb_backdrop_path,
+            tmdb_poster_path,
+            imdb_id,
+            name,
+            overview,
+            language,
+            runtime,
+            released_on,
+            0 AS "relevance!",
+            0 AS "popularity!",
+            0::float4 AS "search_rank!",
+            created_at,
+            updated_at
+        FROM titles WHERE id = $1 LIMIT 1"#,
+        id, // $1
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+pub async fn get_title_by_id<'a>(id: Uuid, user: Option<&User>, query: Option<&str>) -> sqlx::Result<Title<'a>> {
     let user_id = user.map(|u| u.id);
     let query = query.unwrap_or_default().trim();
+
+    if user_id.is_none() && query.is_empty() {
+        return get_cached_title_by_id(id).await;
+    };
+
+    let db_pool = db_pool().await;
 
     sqlx::query_as!(
         Title,
@@ -354,4 +398,10 @@ pub async fn paginate_titles<'a>(
         },
     )
     .await
+}
+
+pub async fn remove_title_cache(title: &Title<'_>) {
+    GET_CACHED_TITLE_BY_ID
+        .cache_remove(CACHE_PREFIX_GET_TITLE_BY_ID, &title.id)
+        .await;
 }

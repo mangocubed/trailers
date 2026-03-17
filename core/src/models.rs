@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::types::PgInterval;
 use url::Url;
@@ -21,8 +21,18 @@ pub struct Genre<'a> {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub struct Interval(pub Option<TimeDelta>);
+
+impl From<Option<PgInterval>> for Interval {
+    fn from(value: Option<PgInterval>) -> Self {
+        Self(value.map(|v| TimeDelta::microseconds(v.microseconds)))
+    }
+}
+
 pub type Keyword<'a> = Genre<'a>;
 
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Person<'a> {
     pub id: Uuid,
     pub tmdb_id: i32,
@@ -31,6 +41,12 @@ pub struct Person<'a> {
     pub name: Cow<'a, str>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Display for Person<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
 }
 
 impl Person<'_> {
@@ -58,6 +74,7 @@ impl Person<'_> {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Title<'a> {
     pub id: Uuid,
     pub media_type: TitleMediaType,
@@ -68,13 +85,19 @@ pub struct Title<'a> {
     pub name: Cow<'a, str>,
     pub overview: Cow<'a, str>,
     pub language: Cow<'a, str>,
-    pub runtime: Option<PgInterval>,
+    pub runtime: Interval,
     pub released_on: Option<NaiveDate>,
     pub relevance: i64,
     pub popularity: i64,
     pub search_rank: f32,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Display for Title<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
 }
 
 impl Title<'_> {
@@ -156,7 +179,6 @@ pub struct TitleStat {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone)]
 pub struct TitleWatchProvider {
     pub id: Uuid,
     pub title_id: Uuid,
@@ -164,6 +186,12 @@ pub struct TitleWatchProvider {
     pub country_codes: Vec<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Display for TitleWatchProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -262,6 +290,7 @@ impl Video<'_> {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WatchProvider<'a> {
     pub id: Uuid,
     pub tmdb_id: i32,
@@ -270,6 +299,12 @@ pub struct WatchProvider<'a> {
     pub home_url: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Display for WatchProvider<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
 }
 
 impl WatchProvider<'_> {

@@ -2,7 +2,7 @@ use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object};
 use uuid::Uuid;
 
-use crate::graphql::objects::{GenreObject, InfoObject, TitleObject, UserObject};
+use crate::graphql::objects::{GenreObject, InfoObject, TitleObject, UserObject, WatchProviderObject};
 use crate::graphql::{CustomContext, IDExt};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
@@ -94,5 +94,34 @@ impl QueryRoot {
             .await
             .map(UserObject)
             .ok()
+    }
+
+    async fn watch_providers(
+        &self,
+        after: Option<Uuid>,
+        first: Option<i32>,
+        country_code: Option<String>,
+    ) -> async_graphql::Result<Connection<Uuid, WatchProviderObject<'_>, EmptyFields, EmptyFields>> {
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let page = commands::paginate_watch_providers(CursorParams { after, first }, country_code).await;
+
+                let mut connection = Connection::new(false, page.has_next_page);
+
+                connection.edges.extend(
+                    page.nodes
+                        .into_iter()
+                        .map(|watch_provider| Edge::new(watch_provider.id, WatchProviderObject(watch_provider))),
+                );
+
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
     }
 }

@@ -114,22 +114,59 @@ pub async fn paginate_title_watch_providers(
         |node: &TitleWatchProvider| node.id,
         async |after| get_title_watch_provider_by_id(after).await.ok(),
         async |cursor_resource, limit| {
-            let (cursor_id, cursor_created_at) = cursor_resource
-                .map(|r| (Some(r.id), Some(r.created_at)))
-                .unwrap_or_default();
+            let cursor_id = cursor_resource.map(|r| Some(r.id)).unwrap_or_default();
 
             sqlx::query_as!(
                 TitleWatchProvider,
                 r#"SELECT * FROM title_watch_providers
                 WHERE
-                    ($1::uuid IS NULL OR $2::timestamptz IS NULL OR created_at < $2 OR (created_at = $2 AND id < $1))
-                    AND title_id = $3 AND ($4::varchar IS NULL OR $4 = ANY(country_codes))
-                ORDER BY created_at DESC, id DESC LIMIT $5"#,
-                cursor_id,         // $1
-                cursor_created_at, // $2
-                title.id,          // $3
-                country_code,      // $4
-                limit              // $5
+                    ($1::uuid IS NULL OR id > $1) AND title_id = $2 AND ($3::text IS NULL OR $3 = ANY(country_codes))
+                ORDER BY id ASC LIMIT $4"#,
+                cursor_id,    // $1
+                title.id,     // $2
+                country_code, // $3
+                limit         // $4
+            )
+            .fetch_all(db_pool)
+            .await
+            .unwrap_or_default()
+        },
+    )
+    .await
+}
+
+pub async fn paginate_watch_providers<'a>(
+    cursor_params: CursorParams,
+    country_code: Option<String>,
+) -> CursorPage<WatchProvider<'a>> {
+    let db_pool = db_pool().await;
+
+    CursorPage::new(
+        &cursor_params,
+        |node: &WatchProvider| node.id,
+        async |after| get_watch_provider_by_id(after).await.ok(),
+        async |cursor_resource, limit| {
+            let (cursor_id, cursor_name) = cursor_resource
+                .map(|r| (Some(r.id), Some(r.name.to_string())))
+                .unwrap_or_default();
+
+            sqlx::query_as!(
+                WatchProvider,
+                r#"SELECT * FROM watch_providers AS w
+                WHERE
+                    ($1::uuid IS NULL OR (name, id) > ($2, $1))
+                    AND (
+                        $3::text IS NULL
+                        OR (
+                            SELECT id FROM title_watch_providers
+                            WHERE watch_provider_id = w.id AND $3 = ANY(country_codes) LIMIT 1
+                        ) IS NOT NULL
+                    )
+                ORDER BY name ASC, id ASC LIMIT $4"#,
+                cursor_id,    // $1
+                cursor_name,  // $2
+                country_code, // $3
+                limit         // $4
             )
             .fetch_all(db_pool)
             .await

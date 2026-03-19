@@ -74,7 +74,7 @@ pub async fn paginate_genres<'a>(cursor_params: &CursorParams, title: Option<&Ti
                 Genre,
                 "SELECT * FROM genres AS g
                 WHERE
-                    ($1::uuid IS NULL OR $2::text IS NULL OR name > $2 OR (name = $2 AND id > $1))
+                    ($1::uuid IS NULL OR (name, id) > ($2, $1))
                     AND ($3::uuid IS NULL OR (
                         SELECT id FROM title_genres AS tg WHERE tg.title_id = $3 AND tg.genre_id = g.id LIMIT 1
                     ) IS NOT NULL)

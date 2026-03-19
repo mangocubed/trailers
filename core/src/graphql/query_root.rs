@@ -2,7 +2,7 @@ use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object};
 use uuid::Uuid;
 
-use crate::graphql::objects::{InfoObject, TitleObject, UserObject};
+use crate::graphql::objects::{GenreObject, InfoObject, TitleObject, UserObject};
 use crate::graphql::{CustomContext, IDExt};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
@@ -13,6 +13,34 @@ pub struct QueryRoot;
 impl QueryRoot {
     async fn current_user(&self, ctx: &Context<'_>) -> Option<UserObject> {
         ctx.user_opt().map(|user| UserObject(user.clone()))
+    }
+
+    async fn genres(
+        &self,
+        after: Option<Uuid>,
+        first: Option<i32>,
+    ) -> async_graphql::Result<Connection<Uuid, GenreObject<'_>, EmptyFields, EmptyFields>> {
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let cursor_page = commands::paginate_genres(&CursorParams { after, first }, None).await;
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
+
+                connection.edges.extend(
+                    cursor_page
+                        .nodes
+                        .into_iter()
+                        .map(|genre| Edge::new(genre.id, GenreObject(genre))),
+                );
+
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
     }
 
     async fn info(&self) -> InfoObject {

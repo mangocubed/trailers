@@ -203,9 +203,12 @@ impl TitleObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let page =
-                    commands::paginate_title_watch_providers(&CursorParams { after, first }, &self.0, country_code)
-                        .await;
+                let page = commands::paginate_title_watch_providers(
+                    &CursorParams { after, first },
+                    &self.0,
+                    country_code.as_deref(),
+                )
+                .await;
 
                 let mut connection = Connection::new(false, page.has_next_page);
 

@@ -229,10 +229,16 @@ pub async fn paginate_titles<'a>(
     cursor_params: CursorParams,
     user: Option<&User>,
     query: Option<&str>,
+    media_type: Option<TitleMediaType>,
+    genre_ids: Option<Vec<Uuid>>,
+    watch_provider_ids: Option<Vec<Uuid>>,
+    country_code: Option<&str>,
     include_viewed: Option<bool>,
 ) -> CursorPage<Title<'a>> {
     let db_pool = db_pool().await;
     let query = query.unwrap_or_default().trim();
+    let genre_ids = genre_ids.unwrap_or_default();
+    let watch_provider_ids = watch_provider_ids.unwrap_or_default();
     let include_viewed = include_viewed.unwrap_or_default();
 
     CursorPage::new(
@@ -266,22 +272,10 @@ pub async fn paginate_titles<'a>(
                     updated_at
                 FROM (
                     (SELECT
-                        t.id,
-                        media_type,
-                        tmdb_id,
-                        tmdb_backdrop_path,
-                        tmdb_poster_path,
-                        imdb_id,
-                        name,
-                        overview,
-                        language,
-                        runtime,
-                        released_on,
+                        t.*,
                         tr.relevance,
                         COALESCE((SELECT popularity FROM title_stats WHERE title_id = t.id LIMIT 1), 0) AS popularity,
-                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
-                        t.created_at,
-                        t.updated_at
+                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank
                     FROM titles AS t JOIN title_recommendations AS tr ON tr.user_id = $5 AND t.id = tr.title_id
                     WHERE (
                             $1::uuid IS NULL
@@ -289,8 +283,21 @@ pub async fn paginate_titles<'a>(
                         ) AND (
                             $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
                             OR overview ILIKE '%'||$6||'%'
+                        ) AND ($7::title_media_type IS NULL OR media_type = $7)
+                        AND (
+                            cardinality($8::uuid[]) = 0
+                            OR (SELECT id FROM title_genres WHERE title_id = t.id AND genre_id = ANY($8) LIMIT 1) IS NOT NULL
                         ) AND (
-                            $7 IS TRUE
+                            cardinality($9::uuid[]) = 0
+                            OR (
+                                SELECT id FROM title_watch_providers
+                                WHERE
+                                    title_id = t.id AND watch_provider_id = ANY($9)
+                                    AND ($10::text IS NULL OR $10 = ANY(country_codes))
+                                LIMIT 1
+                            ) IS NOT NULL
+                        ) AND (
+                            $11 IS TRUE
                             OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
                         ) AND (
                             tr.id IS NOT NULL
@@ -302,25 +309,13 @@ pub async fn paginate_titles<'a>(
                         tr.relevance DESC,
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
                         t.id DESC
-                    LIMIT $8)
+                    LIMIT $12)
                     UNION ALL
                     (SELECT
-                        t.id,
-                        media_type,
-                        tmdb_id,
-                        tmdb_backdrop_path,
-                        tmdb_poster_path,
-                        imdb_id,
-                        name,
-                        overview,
-                        language,
-                        runtime,
-                        released_on,
+                        t.*,
                         0 AS relevance,
                         ts.popularity,
-                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
-                        t.created_at,
-                        t.updated_at
+                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank
                     FROM titles AS t JOIN title_stats AS ts ON ts.title_id = t.id
                     WHERE (
                             $1::uuid IS NULL
@@ -328,12 +323,25 @@ pub async fn paginate_titles<'a>(
                         ) AND (
                             $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
                             OR overview ILIKE '%'||$6||'%'
+                        ) AND ($7 IS NULL OR media_type = $7)
+                        AND (
+                            cardinality($8::uuid[]) = 0
+                            OR (SELECT id FROM title_genres WHERE title_id = t.id AND genre_id = ANY($8) LIMIT 1) IS NOT NULL
+                        ) AND (
+                            cardinality($9::uuid[]) = 0
+                            OR (
+                                SELECT id FROM title_watch_providers
+                                WHERE
+                                    title_id = t.id AND watch_provider_id = ANY($9)
+                                    AND ($10::text IS NULL OR $10 = ANY(country_codes))
+                                LIMIT 1
+                            ) IS NOT NULL
                         ) AND (
                             $5 IS NULL OR (
                                 SELECT id FROM title_recommendations WHERE user_id = $5 AND title_id = t.id LIMIT 1
                             ) IS NULL
                         ) AND (
-                            $7 IS TRUE OR $5 IS NULL
+                            $11 IS TRUE OR $5 IS NULL
                             OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
                         ) AND (
                             SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
@@ -342,37 +350,38 @@ pub async fn paginate_titles<'a>(
                         ts.popularity DESC,
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
                         id DESC
-                    LIMIT $8)
+                    LIMIT $12)
                     UNION ALL
                     (SELECT
-                        t.id,
-                        media_type,
-                        tmdb_id,
-                        tmdb_backdrop_path,
-                        tmdb_poster_path,
-                        imdb_id,
-                        name,
-                        overview,
-                        language,
-                        runtime,
-                        released_on,
+                        t.*,
                         0 AS relevance,
                         0 AS popularity,
-                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank,
-                        t.created_at,
-                        t.updated_at
+                        CASE $6 WHEN '' THEN 0 ELSE ts_rank(search, websearch_to_tsquery($6)) END AS search_rank
                     FROM titles AS t
                     WHERE
                         ($1::uuid IS NULL OR (ts_rank(search, websearch_to_tsquery($6)), t.id) < ($4, $1))
                         AND (
                             $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
                             OR overview ILIKE '%'||$6||'%'
+                        ) AND ($7 IS NULL OR media_type = $7)
+                        AND (
+                            cardinality($8::uuid[]) = 0
+                            OR (SELECT id FROM title_genres WHERE title_id = t.id AND genre_id = ANY($8) LIMIT 1) IS NOT NULL
+                        ) AND (
+                            cardinality($9::uuid[]) = 0
+                            OR (
+                                SELECT id FROM title_watch_providers
+                                WHERE
+                                    title_id = t.id AND watch_provider_id = ANY($9)
+                                    AND ($10::text IS NULL OR $10 = ANY(country_codes))
+                                LIMIT 1
+                            ) IS NOT NULL
                         ) AND (
                             $5 IS NULL OR (
                                 SELECT id FROM title_recommendations WHERE user_id = $5 AND title_id = t.id LIMIT 1
                             ) IS NULL
                         ) AND (
-                            $7 IS TRUE OR $5 IS NULL
+                            $11 IS TRUE OR $5 IS NULL
                             OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
                         ) AND (SELECT id FROM title_stats AS ts WHERE ts.title_id = t.id LIMIT 1) IS NULL
                         AND (
@@ -381,16 +390,20 @@ pub async fn paginate_titles<'a>(
                     ORDER BY
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
                         id DESC
-                    LIMIT $8)
-                ) LIMIT $8"#,
-                cursor_id,          // $1
-                cursor_relevance,   // $2
-                cursor_popularity,  // $3
-                cursor_search_rank, // $4
-                user_id,            // $5
-                query,              // $6
-                include_viewed,     // $7
-                limit,              // $8
+                    LIMIT $12)
+                ) LIMIT $12"#,
+                cursor_id,           // $1
+                cursor_relevance,    // $2
+                cursor_popularity,   // $3
+                cursor_search_rank,  // $4
+                user_id,             // $5
+                query,               // $6
+                media_type as _,     // $7
+                &genre_ids,          // $8
+                &watch_provider_ids, // $9
+                country_code,        // $10
+                include_viewed,      // $11
+                limit,               // $12
             )
             .fetch_all(db_pool)
             .await

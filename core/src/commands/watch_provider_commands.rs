@@ -137,9 +137,11 @@ pub async fn paginate_title_watch_providers(
 
 pub async fn paginate_watch_providers<'a>(
     cursor_params: CursorParams,
+    ids: Option<Vec<Uuid>>,
     country_code: Option<&str>,
 ) -> CursorPage<WatchProvider<'a>> {
     let db_pool = db_pool().await;
+    let ids = ids.unwrap_or_default();
 
     CursorPage::new(
         &cursor_params,
@@ -155,18 +157,20 @@ pub async fn paginate_watch_providers<'a>(
                 r#"SELECT * FROM watch_providers AS w
                 WHERE
                     ($1::uuid IS NULL OR (name, id) > ($2, $1))
+                    AND (cardinality($3::uuid[]) = 0 OR id = ANY($3))
                     AND (
-                        $3::text IS NULL
+                        $4::text IS NULL
                         OR (
                             SELECT id FROM title_watch_providers
-                            WHERE watch_provider_id = w.id AND $3 = ANY(country_codes) LIMIT 1
+                            WHERE watch_provider_id = w.id AND $4 = ANY(country_codes) LIMIT 1
                         ) IS NOT NULL
                     )
-                ORDER BY name ASC, id ASC LIMIT $4"#,
+                ORDER BY name ASC, id ASC LIMIT $5"#,
                 cursor_id,    // $1
                 cursor_name,  // $2
-                country_code, // $3
-                limit         // $4
+                &ids,         // $3
+                country_code, // $4
+                limit         // $5
             )
             .fetch_all(db_pool)
             .await

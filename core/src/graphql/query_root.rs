@@ -20,6 +20,7 @@ impl QueryRoot {
         &self,
         after: Option<Uuid>,
         first: Option<i32>,
+        ids: Option<Vec<Uuid>>,
     ) -> async_graphql::Result<Connection<Uuid, GenreObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
@@ -28,7 +29,7 @@ impl QueryRoot {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_genres(&CursorParams { after, first }, None).await;
+                let cursor_page = commands::paginate_genres(&CursorParams { after, first }, ids, None).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
@@ -114,6 +115,7 @@ impl QueryRoot {
         &self,
         after: Option<Uuid>,
         first: Option<i32>,
+        ids: Option<Vec<Uuid>>,
         country_code: Option<String>,
     ) -> async_graphql::Result<Connection<Uuid, WatchProviderObject<'_>, EmptyFields, EmptyFields>> {
         query(
@@ -124,7 +126,8 @@ impl QueryRoot {
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
                 let page =
-                    commands::paginate_watch_providers(CursorParams { after, first }, country_code.as_deref()).await;
+                    commands::paginate_watch_providers(CursorParams { after, first }, ids, country_code.as_deref())
+                        .await;
 
                 let mut connection = Connection::new(false, page.has_next_page);
 

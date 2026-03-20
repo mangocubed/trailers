@@ -59,8 +59,13 @@ pub async fn insert_title_genre(title: &Title<'_>, genre: &Genre<'_>) -> sqlx::R
     Ok(())
 }
 
-pub async fn paginate_genres<'a>(cursor_params: &CursorParams, title: Option<&Title<'_>>) -> CursorPage<Genre<'a>> {
+pub async fn paginate_genres<'a>(
+    cursor_params: &CursorParams,
+    ids: Option<Vec<Uuid>>,
+    title: Option<&Title<'_>>,
+) -> CursorPage<Genre<'a>> {
     let db_pool = db_pool().await;
+    let ids = ids.unwrap_or_default();
 
     CursorPage::new(
         cursor_params,
@@ -75,14 +80,16 @@ pub async fn paginate_genres<'a>(cursor_params: &CursorParams, title: Option<&Ti
                 "SELECT * FROM genres AS g
                 WHERE
                     ($1::uuid IS NULL OR (name, id) > ($2, $1))
-                    AND ($3::uuid IS NULL OR (
-                        SELECT id FROM title_genres AS tg WHERE tg.title_id = $3 AND tg.genre_id = g.id LIMIT 1
+                    AND (cardinality($3::uuid[]) = 0 OR id = ANY($3))
+                    AND ($4::uuid IS NULL OR (
+                        SELECT id FROM title_genres AS tg WHERE tg.title_id = $4 AND tg.genre_id = g.id LIMIT 1
                     ) IS NOT NULL)
-                ORDER BY name ASC, id ASC LIMIT $4",
+                ORDER BY name ASC, id ASC LIMIT $5",
                 cursor_id,              // $1
                 cursor_name.as_deref(), // $2
-                title_id,               // $3
-                limit                   // $4
+                &ids,                   // $3
+                title_id,               // $4
+                limit                   // $5
             )
             .fetch_all(db_pool)
             .await

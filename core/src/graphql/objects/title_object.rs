@@ -115,7 +115,7 @@ impl TitleObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_genres(&CursorParams { after, first }, Some(&self.0)).await;
+                let cursor_page = commands::paginate_genres(&CursorParams { after, first }, None, Some(&self.0)).await;
 
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 

@@ -1,4 +1,4 @@
-use async_graphql::{Context, EmptySubscription, ID, Schema, SchemaBuilder};
+use async_graphql::{Context, EmptySubscription, ID, Result, Schema, SchemaBuilder};
 
 mod guards;
 mod input_objects;
@@ -41,11 +41,11 @@ impl CustomContext for Context<'_> {
 }
 
 trait IDExt {
-    fn try_into_uuid(&self) -> Result<Uuid, uuid::Error>;
+    fn try_into_uuid(&self) -> Result<Uuid>;
 }
 
 impl IDExt for ID {
-    fn try_into_uuid(&self) -> Result<Uuid, uuid::Error> {
-        Uuid::try_parse(self.as_ref())
+    fn try_into_uuid(&self) -> Result<Uuid> {
+        Ok(Uuid::try_parse(self.as_ref())?)
     }
 }

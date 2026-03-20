@@ -105,7 +105,7 @@ pub async fn insert_or_update_title_watch_provider(
 pub async fn paginate_title_watch_providers(
     cursor_params: &CursorParams,
     title: &Title<'_>,
-    country_code: Option<String>,
+    country_code: Option<&str>,
 ) -> CursorPage<TitleWatchProvider> {
     let db_pool = db_pool().await;
 
@@ -137,7 +137,7 @@ pub async fn paginate_title_watch_providers(
 
 pub async fn paginate_watch_providers<'a>(
     cursor_params: CursorParams,
-    country_code: Option<String>,
+    country_code: Option<&str>,
 ) -> CursorPage<WatchProvider<'a>> {
     let db_pool = db_pool().await;
 

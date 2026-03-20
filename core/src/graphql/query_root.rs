@@ -2,6 +2,7 @@ use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object};
 use uuid::Uuid;
 
+use crate::enums::TitleMediaType;
 use crate::graphql::objects::{GenreObject, InfoObject, TitleObject, UserObject, WatchProviderObject};
 use crate::graphql::{CustomContext, IDExt};
 use crate::pagination::CursorParams;
@@ -57,9 +58,13 @@ impl QueryRoot {
     async fn titles(
         &self,
         ctx: &Context<'_>,
-        #[graphql(name = "query")] q: Option<String>,
         after: Option<Uuid>,
         first: Option<i32>,
+        #[graphql(name = "query")] q: Option<String>,
+        media_type: Option<TitleMediaType>,
+        genre_ids: Option<Vec<Uuid>>,
+        watch_provider_ids: Option<Vec<Uuid>>,
+        country_code: Option<String>,
         include_viewed: Option<bool>,
     ) -> async_graphql::Result<Connection<Uuid, TitleObject<'_>, EmptyFields, EmptyFields>> {
         query(
@@ -70,8 +75,17 @@ impl QueryRoot {
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
                 let user = ctx.user_opt();
-                let cursor_page =
-                    commands::paginate_titles(CursorParams { after, first }, user, q.as_deref(), include_viewed).await;
+                let cursor_page = commands::paginate_titles(
+                    CursorParams { after, first },
+                    user,
+                    q.as_deref(),
+                    media_type,
+                    genre_ids,
+                    watch_provider_ids,
+                    country_code.as_deref(),
+                    include_viewed,
+                )
+                .await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
@@ -109,7 +123,8 @@ impl QueryRoot {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let page = commands::paginate_watch_providers(CursorParams { after, first }, country_code).await;
+                let page =
+                    commands::paginate_watch_providers(CursorParams { after, first }, country_code.as_deref()).await;
 
                 let mut connection = Connection::new(false, page.has_next_page);
 

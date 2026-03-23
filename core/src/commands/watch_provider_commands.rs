@@ -154,18 +154,14 @@ pub async fn paginate_watch_providers<'a>(
 
             sqlx::query_as!(
                 WatchProvider,
-                r#"SELECT * FROM watch_providers AS w
+                r#"SELECT wp.* FROM watch_providers AS wp
+                JOIN title_watch_providers AS twp ON wp.id = twp.watch_provider_id
                 WHERE
-                    ($1::uuid IS NULL OR (name, id) > ($2, $1))
-                    AND (cardinality($3::uuid[]) = 0 OR id = ANY($3))
-                    AND (
-                        $4::text IS NULL
-                        OR (
-                            SELECT id FROM title_watch_providers
-                            WHERE watch_provider_id = w.id AND $4 = ANY(country_codes) LIMIT 1
-                        ) IS NOT NULL
-                    )
-                ORDER BY name ASC, id ASC LIMIT $5"#,
+                    ($1::uuid IS NULL OR (name, wp.id) > ($2, $1))
+                    AND (cardinality($3::uuid[]) = 0 OR wp.id = ANY($3))
+                    AND ($4::text IS NULL OR $4 = ANY(country_codes))
+                GROUP BY wp.id
+                ORDER BY name ASC, wp.id ASC LIMIT $5"#,
                 cursor_id,    // $1
                 cursor_name,  // $2
                 &ids,         // $3

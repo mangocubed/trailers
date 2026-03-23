@@ -1,0 +1,3 @@
+DROP INDEX index_genres_on_name;
+DROP INDEX index_watch_providers_on_name;
+DROP INDEX index_title_watch_providers_on_country_codes;

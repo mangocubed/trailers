@@ -34,6 +34,9 @@ Movies and TV Series recommendations.
 | MAILER_SMTP_USERNAME         | String  |                                                      | monitor         |
 | MAILER_SUPPORT_EMAIL_ADDRESS | String  | support@localhost                                    | monitor         |
 | MONITOR_REDIS_URL            | String  | redis://127.0.0.1:6379/1                             | api,cli,monitor |
+| SENTRY_DSN                   | String  |                                                      | api,monitor     |
+| SENTRY_TRACES_SAMPLE_RATE    | Number  | 1.0                                                  | api,monitor     |
+| SENTRY_SEND_DEFAULT_PII      | Boolean | true                                                 | api,monitor     |
 | STORAGE_PATH                 | String  | ./storage/                                           | api,monitor     |
 | STORAGE_URL                  | String  | http://127.0.0.1:8005/storage/                       | api             |
 | USERS_SESSION_TOKEN_LENGTH   | Number  | 64                                                   | api             |

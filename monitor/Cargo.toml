@@ -5,7 +5,7 @@ edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-apalis.workspace = true
+apalis = { workspace = true, features = ["sentry"] }
 apalis-cron = "1.0.0-rc.6"
 chrono.workspace = true
 envconfig.workspace = true
@@ -14,9 +14,9 @@ lettre = { version = "0.11.19", features = [
     "tokio1-native-tls",
 ] }
 reqwest.workspace = true
+sentry = { workspace = true, features = ["tower"] }
 serde.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-tracing-subscriber.workspace = true
 url.workspace = true
 trailers-core.workspace = true

@@ -1,13 +1,15 @@
 use std::time::Duration;
 
 use apalis::layers::WorkerBuilderExt;
+use apalis::layers::sentry::SentryLayer;
 use apalis::prelude::{Monitor, WorkerBuilder};
 use apalis_cron::CronStream;
 use apalis_cron::builder::schedule;
+use sentry::integrations::tower::NewSentryLayer;
 use tokio::signal::unix::SignalKind;
-use tracing::{Level, info};
+use tracing::info;
 
-use trailers_core::jobs_storage;
+use trailers_core::{jobs_storage, start_tracing_subscriber};
 
 mod config;
 mod handlers;
@@ -17,13 +19,7 @@ mod tmdb;
 
 #[tokio::main]
 async fn main() {
-    let tracing_level = if cfg!(debug_assertions) {
-        Level::DEBUG
-    } else {
-        Level::INFO
-    };
-
-    tracing_subscriber::fmt().with_max_level(tracing_level).init();
+    let _guard = start_tracing_subscriber();
 
     info!("Monitor starting");
 
@@ -37,40 +33,50 @@ async fn main() {
 
         WorkerBuilder::new(format!("daily-{index}"))
             .backend(CronStream::new(daily_schedule))
-            .concurrency(1)
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryLayer::new())
             .enable_tracing()
+            .concurrency(1)
             .build(handlers::daily)
     };
 
     let generate_video_hls_worker = |index| {
         WorkerBuilder::new(format!("generate-video-hls-{index}"))
             .backend(jobs_storage.generate_video_hls.clone())
-            .concurrency(1)
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryLayer::new())
             .enable_tracing()
+            .concurrency(1)
             .build(handlers::generate_video_hls)
     };
 
     let new_user_worker = |index| {
         WorkerBuilder::new(format!("new-user-{index}"))
             .backend(jobs_storage.new_user.clone())
-            .concurrency(1)
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryLayer::new())
             .enable_tracing()
+            .concurrency(1)
             .build(handlers::new_user)
     };
 
     let populate_worker = |index| {
         WorkerBuilder::new(format!("populate-{index}"))
             .backend(jobs_storage.populate.clone())
-            .concurrency(1)
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryLayer::new())
             .enable_tracing()
+            .concurrency(1)
             .build(handlers::populate)
     };
 
     let title_recommendations_worker = |index| {
         WorkerBuilder::new(format!("title-recommendations-{index}"))
             .backend(jobs_storage.title_recommendations.clone())
-            .concurrency(1)
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryLayer::new())
             .enable_tracing()
+            .concurrency(1)
             .build(handlers::title_recommendations_handler)
     };
 

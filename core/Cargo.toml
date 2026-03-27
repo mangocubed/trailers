@@ -43,7 +43,7 @@ tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url.workspace = true
-uuid = { version = "1.22.0", features = ["serde"] }
+uuid = { version = "1.23.0", features = ["serde"] }
 
 [features]
 default = ["graphql"]

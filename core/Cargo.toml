@@ -26,7 +26,7 @@ cached = { version = "0.59.0", features = [
 ] }
 chrono.workspace = true
 envconfig.workspace = true
-md-5 = "0.10.6"
+md-5 = "0.11.0"
 regex = { version = "1.12.3", optional = true }
 reqwest.workspace = true
 rust_iso3166 = "0.1.14"

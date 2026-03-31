@@ -67,6 +67,7 @@ impl QueryRoot {
         watch_provider_ids: Option<Vec<Uuid>>,
         country_code: Option<String>,
         include_viewed: Option<bool>,
+        include_without_videos: Option<bool>,
     ) -> async_graphql::Result<Connection<Uuid, TitleObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
@@ -85,6 +86,7 @@ impl QueryRoot {
                     watch_provider_ids,
                     country_code.as_deref(),
                     include_viewed,
+                    include_without_videos,
                 )
                 .await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);

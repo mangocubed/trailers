@@ -222,6 +222,8 @@ pub async fn insert_or_update_title<'a>(
 
     let _ = get_or_insert_title_stat(&title).await;
 
+    remove_title_cache(&title).await;
+
     Ok(title)
 }
 
@@ -234,12 +236,14 @@ pub async fn paginate_titles<'a>(
     watch_provider_ids: Option<Vec<Uuid>>,
     country_code: Option<&str>,
     include_viewed: Option<bool>,
+    include_without_videos: Option<bool>,
 ) -> CursorPage<Title<'a>> {
     let db_pool = db_pool().await;
     let query = query.unwrap_or_default().trim();
     let genre_ids = genre_ids.unwrap_or_default();
     let watch_provider_ids = watch_provider_ids.unwrap_or_default();
     let include_viewed = include_viewed.unwrap_or_default();
+    let include_without_videos = include_without_videos.unwrap_or_default();
 
     CursorPage::new(
         &cursor_params,
@@ -303,17 +307,12 @@ pub async fn paginate_titles<'a>(
                         ) AND (
                             $11 IS TRUE
                             OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
-                        ) AND (
-                            tr.id IS NOT NULL
-                            OR (
-                                SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
-                            ) IS NOT NULL
-                        )
+                        ) AND ($12 IS TRUE OR has_videos IS TRUE)
                     ORDER BY
                         tr.relevance DESC,
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
                         t.id DESC
-                    LIMIT $12)
+                    LIMIT $13)
                     UNION ALL
                     (SELECT
                         t.*,
@@ -347,14 +346,12 @@ pub async fn paginate_titles<'a>(
                         ) AND (
                             $11 IS TRUE OR $5 IS NULL
                             OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
-                        ) AND (
-                            SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
-                        ) IS NOT NULL
+                        ) AND ($12 IS TRUE OR has_videos IS TRUE)
                     ORDER BY
                         ts.popularity DESC,
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
                         id DESC
-                    LIMIT $12)
+                    LIMIT $13)
                     UNION ALL
                     (SELECT
                         t.*,
@@ -387,27 +384,26 @@ pub async fn paginate_titles<'a>(
                         ) AND (
                             $11 IS TRUE OR $5 IS NULL
                             OR (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $5 LIMIT 1) IS NULL
-                        ) AND (SELECT id FROM title_stats AS ts WHERE ts.title_id = t.id LIMIT 1) IS NULL
-                        AND (
-                            SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1
-                        ) IS NOT NULL
+                        ) AND ($12 IS TRUE OR has_videos IS TRUE)
+                        AND (SELECT id FROM title_stats AS ts WHERE ts.title_id = t.id LIMIT 1) IS NULL
                     ORDER BY
                         CASE $6 WHEN '' THEN NULL ELSE ts_rank(search, websearch_to_tsquery($6)) END DESC,
                         id DESC
-                    LIMIT $12)
-                ) LIMIT $12"#,
-                cursor_id,           // $1
-                cursor_relevance,    // $2
-                cursor_popularity,   // $3
-                cursor_search_rank,  // $4
-                user_id,             // $5
-                query,               // $6
-                media_type as _,     // $7
-                &genre_ids,          // $8
-                &watch_provider_ids, // $9
-                country_code,        // $10
-                include_viewed,      // $11
-                limit,               // $12
+                    LIMIT $13)
+                ) LIMIT $13"#,
+                cursor_id,              // $1
+                cursor_relevance,       // $2
+                cursor_popularity,      // $3
+                cursor_search_rank,     // $4
+                user_id,                // $5
+                query,                  // $6
+                media_type as _,        // $7
+                &genre_ids,             // $8
+                &watch_provider_ids,    // $9
+                country_code,           // $10
+                include_viewed,         // $11
+                include_without_videos, // $12
+                limit,                  // $13
             )
             .fetch_all(db_pool)
             .await

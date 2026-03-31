@@ -179,7 +179,7 @@ pub async fn insert_video(
 
         let orientation = VideoOrientation::from_aspect_ratio(aspect_ratio);
 
-        let _ = update_video_info(&video, duration_secs, orientation, Some(Utc::now())).await;
+        let _ = update_video_info(&video, duration_secs, orientation, Utc::now()).await;
 
         Ok(())
     } else {
@@ -243,7 +243,7 @@ async fn update_video_info(
     video: &Video<'_>,
     duration_secs: u32,
     orientation: VideoOrientation,
-    downloaded_at: Option<DateTime<Utc>>,
+    downloaded_at: DateTime<Utc>,
 ) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
 
@@ -253,6 +253,13 @@ async fn update_video_info(
         duration_secs as i32, // $2
         orientation as _,     // $3
         downloaded_at,        // $4
+    )
+    .execute(db_pool)
+    .await?;
+
+    sqlx::query!(
+        "UPDATE titles SET has_videos = TRUE WHERE id = $1 AND has_videos IS FALSE",
+        video.title_id,
     )
     .execute(db_pool)
     .await?;

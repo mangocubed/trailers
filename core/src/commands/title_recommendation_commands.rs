@@ -38,9 +38,8 @@ pub async fn update_title_recommendations(user: &User) -> sqlx::Result<()> {
         r#"INSERT INTO title_recommendations (user_id, title_id, relevance)
         SELECT $1 AS user_id, id AS title_id, get_title_relevance(id, $1) AS relevance
         FROM titles AS t
-        WHERE is_adult IS FALSE
+        WHERE has_videos IS TRUE
             AND (SELECT id FROM user_title_ties WHERE title_id = t.id AND user_id = $1 LIMIT 1) IS NULL
-            AND (SELECT id FROM videos AS v WHERE title_id = t.id AND downloaded_at IS NOT NULL LIMIT 1) IS NOT NULL
             AND get_title_relevance(id, $1) > 0
         ON CONFLICT (title_id, user_id)
         DO UPDATE SET relevance=excluded.relevance"#,

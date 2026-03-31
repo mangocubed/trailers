@@ -17,6 +17,8 @@ enum CliCommand {
     GraphqlSchema,
     Populate {
         #[arg(short, long, required = false)]
+        query: Option<String>,
+        #[arg(short, long, required = false)]
         start_date: Option<NaiveDate>,
         #[arg(short, long, required = false)]
         end_date: Option<NaiveDate>,
@@ -33,10 +35,17 @@ async fn main() {
 
             println!("{}", graphql_schema.sdl());
         }
-        CliCommand::Populate { start_date, end_date } => {
+        CliCommand::Populate {
+            query,
+            start_date,
+            end_date,
+        } => {
             println!("Pushing job to populate database...");
 
-            jobs_storage().await.push_populate(*start_date, *end_date).await;
+            jobs_storage()
+                .await
+                .push_populate(query.clone(), *start_date, *end_date)
+                .await;
 
             println!("Done!");
         }

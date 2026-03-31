@@ -4,10 +4,10 @@ use std::str::FromStr;
 use chrono::{NaiveDate, TimeDelta, Utc};
 use reqwest::StatusCode;
 
-use trailers_core::enums::{TitleMediaType, VideoSource, VideoType};
+use trailers_core::commands;
+use trailers_core::enums::{TitleCrewJob, TitleMediaType, VideoSource, VideoType};
 use trailers_core::jobs::PopulateJob;
 use trailers_core::models::Title;
-use trailers_core::{commands, enums::TitleCrewJob};
 
 use crate::tmdb::{Tmdb, TmdbGenre};
 
@@ -17,18 +17,24 @@ pub async fn populate_movies(job: &PopulateJob) -> anyhow::Result<()> {
     let tmdb = Tmdb::new();
 
     while page <= total_pages {
-        let tmdb_changes = tmdb.movie_changes(page, job.end_date, job.start_date).await?;
+        let tmdb_items = if let Some(query) = &job.query {
+            tmdb.search_movie(page, query).await?
+        } else {
+            tmdb.movie_changes(page, job.end_date, job.start_date).await?
+        };
 
-        for tmdb_changes_item in tmdb_changes.results {
-            if tmdb_changes_item.adult.is_none() {
+        for tmdb_item in tmdb_items.results {
+            if tmdb_item.adult
+                || (job.query.is_some()
+                    && commands::get_title_by_tmdb_id(TitleMediaType::Movie, tmdb_item.id)
+                        .await
+                        .or(commands::get_title_by_tmdb_id(TitleMediaType::Short, tmdb_item.id).await)
+                        .is_ok())
+            {
                 continue;
             }
 
-            let Some(tmdb_movie_id) = tmdb_changes_item.id else {
-                continue;
-            };
-
-            let tmdb_movie_result = tmdb.movie(tmdb_movie_id).await;
+            let tmdb_movie_result = tmdb.movie(tmdb_item.id).await;
 
             match tmdb_movie_result {
                 Ok(tmdb_movie) => {
@@ -73,9 +79,9 @@ pub async fn populate_movies(job: &PopulateJob) -> anyhow::Result<()> {
 
                 Err(error) => {
                     if error.status() == Some(StatusCode::NOT_FOUND)
-                        && let Ok(title) = commands::get_title_by_tmdb_id(TitleMediaType::Movie, tmdb_movie_id)
+                        && let Ok(title) = commands::get_title_by_tmdb_id(TitleMediaType::Movie, tmdb_item.id)
                             .await
-                            .or(commands::get_title_by_tmdb_id(TitleMediaType::Short, tmdb_movie_id).await)
+                            .or(commands::get_title_by_tmdb_id(TitleMediaType::Short, tmdb_item.id).await)
                     {
                         let _ = commands::delete_title(&title).await;
                     }
@@ -83,8 +89,8 @@ pub async fn populate_movies(job: &PopulateJob) -> anyhow::Result<()> {
             }
         }
 
-        total_pages = if tmdb_changes.total_pages <= 500 {
-            tmdb_changes.total_pages
+        total_pages = if tmdb_items.total_pages <= 500 {
+            tmdb_items.total_pages
         } else {
             500
         };
@@ -100,18 +106,18 @@ pub async fn populate_persons(job: &PopulateJob) -> anyhow::Result<()> {
     let tmdb = Tmdb::new();
 
     while page <= total_pages {
-        let tmdb_changes = tmdb.person_changes(page, job.end_date, job.start_date).await?;
+        let tmdb_items = if let Some(query) = &job.query {
+            tmdb.search_person(page, query).await?
+        } else {
+            tmdb.person_changes(page, job.end_date, job.start_date).await?
+        };
 
-        for tmdb_changes_item in tmdb_changes.results {
-            if tmdb_changes_item.adult.is_none() {
+        for tmdb_item in tmdb_items.results {
+            if tmdb_item.adult || (job.query.is_some() && commands::get_person_by_tmdb_id(tmdb_item.id).await.is_ok()) {
                 continue;
             }
 
-            let Some(tmdb_person_id) = tmdb_changes_item.id else {
-                continue;
-            };
-
-            let tmdb_person_result = tmdb.person(tmdb_person_id).await;
+            let tmdb_person_result = tmdb.person(tmdb_item.id).await;
 
             match tmdb_person_result {
                 Ok(tmdb_person) => {
@@ -126,7 +132,7 @@ pub async fn populate_persons(job: &PopulateJob) -> anyhow::Result<()> {
                 }
                 Err(error) => {
                     if error.status() == Some(StatusCode::NOT_FOUND)
-                        && let Ok(person) = commands::get_person_by_tmdb_id(tmdb_person_id).await
+                        && let Ok(person) = commands::get_person_by_tmdb_id(tmdb_item.id).await
                     {
                         let _ = commands::delete_person(&person).await;
                     }
@@ -134,8 +140,8 @@ pub async fn populate_persons(job: &PopulateJob) -> anyhow::Result<()> {
             }
         }
 
-        total_pages = if tmdb_changes.total_pages <= 500 {
-            tmdb_changes.total_pages
+        total_pages = if tmdb_items.total_pages <= 500 {
+            tmdb_items.total_pages
         } else {
             500
         };
@@ -151,18 +157,23 @@ pub async fn populate_series(job: &PopulateJob) -> anyhow::Result<()> {
     let tmdb = Tmdb::new();
 
     while page <= total_pages {
-        let tmdb_changes = tmdb.tv_changes(page, job.end_date, job.start_date).await?;
+        let tmdb_items = if let Some(query) = &job.query {
+            tmdb.search_tv(page, query).await?
+        } else {
+            tmdb.tv_changes(page, job.end_date, job.start_date).await?
+        };
 
-        for tmdb_changes_item in tmdb_changes.results {
-            if tmdb_changes_item.adult.is_none() {
+        for tmdb_item in tmdb_items.results {
+            if tmdb_item.adult
+                || (job.query.is_some()
+                    && commands::get_title_by_tmdb_id(TitleMediaType::Series, tmdb_item.id)
+                        .await
+                        .is_ok())
+            {
                 continue;
             }
 
-            let Some(tmdb_tv_id) = tmdb_changes_item.id else {
-                continue;
-            };
-
-            let tmdb_tv_result = tmdb.tv(tmdb_tv_id).await;
+            let tmdb_tv_result = tmdb.tv(tmdb_item.id).await;
 
             match tmdb_tv_result {
                 Ok(tmdb_tv) => {
@@ -195,7 +206,7 @@ pub async fn populate_series(job: &PopulateJob) -> anyhow::Result<()> {
 
                 Err(error) => {
                     if error.status() == Some(StatusCode::NOT_FOUND)
-                        && let Ok(title) = commands::get_title_by_tmdb_id(TitleMediaType::Series, tmdb_tv_id).await
+                        && let Ok(title) = commands::get_title_by_tmdb_id(TitleMediaType::Series, tmdb_item.id).await
                     {
                         let _ = commands::delete_title(&title).await;
                     }
@@ -203,8 +214,8 @@ pub async fn populate_series(job: &PopulateJob) -> anyhow::Result<()> {
             }
         }
 
-        total_pages = if tmdb_changes.total_pages <= 500 {
-            tmdb_changes.total_pages
+        total_pages = if tmdb_items.total_pages <= 500 {
+            tmdb_items.total_pages
         } else {
             500
         };

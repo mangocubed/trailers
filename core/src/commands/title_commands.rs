@@ -6,10 +6,10 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::constants::CACHE_PREFIX_GET_TITLE_BY_ID;
-use crate::db_pool;
 use crate::enums::TitleMediaType;
 use crate::models::{Title, User};
 use crate::pagination::{CursorPage, CursorParams};
+use crate::{db_pool, jobs_storage};
 
 use super::{AsyncRedisCacheExt, async_redis_cache, download_file, get_or_insert_title_stat};
 
@@ -250,6 +250,10 @@ pub async fn paginate_titles<'a>(
                 .map(|c| (Some(c.id), Some(c.relevance), Some(c.popularity), Some(c.search_rank)))
                 .unwrap_or_default();
             let user_id = user.map(|u| u.id);
+
+            if !query.is_empty() && cursor_id.is_none() {
+                jobs_storage().await.push_populate(Some(query.to_owned()), None, None).await;
+            }
 
             sqlx::query_as!(
                 Title,

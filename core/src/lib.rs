@@ -134,10 +134,19 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
-    pub async fn push_populate(&self, start_date: Option<NaiveDate>, end_date: Option<NaiveDate>) {
+    pub async fn push_populate(
+        &self,
+        query: Option<String>,
+        start_date: Option<NaiveDate>,
+        end_date: Option<NaiveDate>,
+    ) {
         self.populate
             .clone()
-            .push(PopulateJob { start_date, end_date })
+            .push(PopulateJob {
+                query,
+                start_date,
+                end_date,
+            })
             .await
             .expect("Could not store job");
     }

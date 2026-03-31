@@ -25,18 +25,6 @@ impl TmdbCast<'_> {
 }
 
 #[derive(Deserialize)]
-pub struct TmdbChanges {
-    pub results: Vec<TmdbChangesItem>,
-    pub total_pages: usize,
-}
-
-#[derive(Deserialize)]
-pub struct TmdbChangesItem {
-    pub id: Option<i32>,
-    pub adult: Option<bool>,
-}
-
-#[derive(Deserialize)]
 pub struct TmdbCredits<'a> {
     pub cast: Vec<TmdbCast<'a>>,
     #[allow(dead_code)]
@@ -62,6 +50,18 @@ impl TmdbCrew<'_> {
 pub struct TmdbGenre<'a> {
     pub id: i32,
     pub name: Cow<'a, str>,
+}
+
+#[derive(Deserialize)]
+pub struct TmdbItems {
+    pub results: Vec<TmdbItem>,
+    pub total_pages: usize,
+}
+
+#[derive(Deserialize)]
+pub struct TmdbItem {
+    pub id: i32,
+    pub adult: bool,
 }
 
 pub type TmdbKeyword<'a> = TmdbGenre<'a>;
@@ -269,7 +269,7 @@ impl<'a> Tmdb<'a> {
         page: usize,
         end_date: Option<NaiveDate>,
         start_date: Option<NaiveDate>,
-    ) -> Result<TmdbChanges> {
+    ) -> Result<TmdbItems> {
         self.get_with_query("movie/changes", Some(&self.changes_query(page, end_date, start_date)))
             .await
     }
@@ -299,8 +299,23 @@ impl<'a> Tmdb<'a> {
         page: usize,
         end_date: Option<NaiveDate>,
         start_date: Option<NaiveDate>,
-    ) -> Result<TmdbChanges> {
+    ) -> Result<TmdbItems> {
         self.get_with_query("person/changes", Some(&self.changes_query(page, end_date, start_date)))
+            .await
+    }
+
+    pub async fn search_movie(&self, page: usize, query: &str) -> Result<TmdbItems> {
+        self.get_with_query("search/movie", Some(&format!("page={page}&query={query}")))
+            .await
+    }
+
+    pub async fn search_person(&self, page: usize, query: &str) -> Result<TmdbItems> {
+        self.get_with_query("search/person", Some(&format!("page={page}&query={query}")))
+            .await
+    }
+
+    pub async fn search_tv(&self, page: usize, query: &str) -> Result<TmdbItems> {
+        self.get_with_query("search/tv", Some(&format!("page={page}&query={query}")))
             .await
     }
 
@@ -313,7 +328,7 @@ impl<'a> Tmdb<'a> {
         page: usize,
         end_date: Option<NaiveDate>,
         start_date: Option<NaiveDate>,
-    ) -> Result<TmdbChanges> {
+    ) -> Result<TmdbItems> {
         self.get_with_query("tv/changes", Some(&self.changes_query(page, end_date, start_date)))
             .await
     }

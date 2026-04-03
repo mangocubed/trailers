@@ -24,7 +24,7 @@ pub async fn populate_movies(job: &PopulateJob) -> anyhow::Result<()> {
         };
 
         for tmdb_item in tmdb_items.results {
-            if tmdb_item.adult
+            if tmdb_item.adult.unwrap_or_default()
                 || (job.query.is_some()
                     && commands::get_title_by_tmdb_id(TitleMediaType::Movie, tmdb_item.id)
                         .await
@@ -113,7 +113,9 @@ pub async fn populate_persons(job: &PopulateJob) -> anyhow::Result<()> {
         };
 
         for tmdb_item in tmdb_items.results {
-            if tmdb_item.adult || (job.query.is_some() && commands::get_person_by_tmdb_id(tmdb_item.id).await.is_ok()) {
+            if tmdb_item.adult.unwrap_or_default()
+                || (job.query.is_some() && commands::get_person_by_tmdb_id(tmdb_item.id).await.is_ok())
+            {
                 continue;
             }
 
@@ -164,7 +166,7 @@ pub async fn populate_series(job: &PopulateJob) -> anyhow::Result<()> {
         };
 
         for tmdb_item in tmdb_items.results {
-            if tmdb_item.adult
+            if tmdb_item.adult.unwrap_or_default()
                 || (job.query.is_some()
                     && commands::get_title_by_tmdb_id(TitleMediaType::Series, tmdb_item.id)
                         .await

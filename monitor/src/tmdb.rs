@@ -61,7 +61,7 @@ pub struct TmdbItems {
 #[derive(Deserialize)]
 pub struct TmdbItem {
     pub id: i32,
-    pub adult: bool,
+    pub adult: Option<bool>,
 }
 
 pub type TmdbKeyword<'a> = TmdbGenre<'a>;

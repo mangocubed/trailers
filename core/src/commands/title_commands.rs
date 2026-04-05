@@ -288,10 +288,8 @@ pub async fn paginate_titles<'a>(
                     WHERE (
                             $1::uuid IS NULL
                             OR (tr.relevance, ts_rank(search, websearch_to_tsquery($6)), t.id) < ($2, $4, $1)
-                        ) AND (
-                            $6 = '' OR search @@ websearch_to_tsquery($6) OR name ILIKE '%'||$6||'%'
-                            OR overview ILIKE '%'||$6||'%'
-                        ) AND ($7::title_media_type IS NULL OR media_type = $7)
+                        ) AND ($6 = '' OR search @@ websearch_to_tsquery($6))
+                        AND ($7::title_media_type IS NULL OR media_type = $7)
                         AND (
                             cardinality($8::uuid[]) = 0
                             OR (SELECT id FROM title_genres WHERE title_id = t.id AND genre_id = ANY($8) LIMIT 1) IS NOT NULL

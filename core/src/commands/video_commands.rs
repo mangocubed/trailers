@@ -175,11 +175,11 @@ pub async fn insert_video(
             return Err(anyhow::anyhow!("Video duration exceeds maximum allowed"));
         }
 
-        jobs_storage().await.push_generate_video_hls(&video).await;
-
         let orientation = VideoOrientation::from_aspect_ratio(aspect_ratio);
 
         let _ = update_video_info(&video, duration_secs, orientation, Utc::now()).await;
+
+        jobs_storage().await.push_generate_video_hls(&video).await;
 
         Ok(())
     } else {

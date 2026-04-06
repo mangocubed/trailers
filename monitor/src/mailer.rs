@@ -52,13 +52,13 @@ pub async fn send_welcome_email(user: &User) -> Result<(), BoxDynError> {
     let message = format!(
         "Hello @{},
 
-        Welcome to Mango³ Trailers.
+        Welcome to Filmstrip.
 
         If you have any questions, please contact us at the following email address: {}",
         identity_user.username, MAILER_CONFIG.support_email_address
     );
 
-    send_email(&identity_user.email, "Welcome to Mango³ Trailers", &message).await
+    send_email(&identity_user.email, "Welcome to Filmstrip", &message).await
 }
 
 pub mod admin_emails {

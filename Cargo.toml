@@ -6,7 +6,7 @@ members = ["api", "cli", "core", "monitor"]
 version = "0.0.0-alpha.21"
 edition = "2024"
 authors = ["Javier E. <jaedns@gmail.com>"]
-homepage = "https://trailers.mango3.app"
+homepage = "https://filmstrip.mango3.app"
 repository = "https://github.com/mangocubed/trailers"
 
 [workspace.dependencies]

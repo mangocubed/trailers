@@ -1,4 +1,4 @@
-# Mango³ Trailers
+# Trailers (aka Filmstrip)
 
 Movies and TV Series recommendations.
 

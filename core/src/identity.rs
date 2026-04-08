@@ -92,6 +92,10 @@ impl Identity {
         }
     }
 
+    pub async fn authorized(&self) -> Result<String> {
+        self.get_with_query("/authorized", None).await
+    }
+
     pub async fn current_user(&self) -> Result<IdentityUser<'_>> {
         self.get_with_query("/current-user", None).await
     }

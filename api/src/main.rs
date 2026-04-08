@@ -5,7 +5,7 @@ use async_graphql::extensions::{ApolloTracing, Logger};
 use async_graphql_axum::{GraphQLBatchRequest, GraphQLResponse};
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{Method, Request};
+use axum::http::{Method, Request, StatusCode};
 use axum::response::{IntoResponse, Result};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -28,6 +28,8 @@ use crate::config::API_CONFIG;
 
 mod config;
 
+const ERROR_UNAUTHORIZED: (StatusCode, &str) = (StatusCode::UNAUTHORIZED, "Unauthorized");
+
 async fn get_index() -> impl IntoResponse {
     Json(Info::default())
 }
@@ -38,19 +40,26 @@ async fn post_graphql(
     ClientIp(client_ip): ClientIp,
     batch_request: GraphQLBatchRequest,
 ) -> Result<GraphQLResponse> {
+    let Some(TypedHeader(Authorization(bearer))) = authorization else {
+        return Err(ERROR_UNAUTHORIZED.into());
+    };
+
+    let token = bearer.token().to_owned();
+
+    let identity = Identity::new().set_token(token.clone());
+
+    if identity.authorized().await.is_err() {
+        return Err(ERROR_UNAUTHORIZED.into());
+    }
+
     let mut batch_request = batch_request.into_inner();
 
     batch_request = batch_request.data(client_ip);
 
-    if let Some(TypedHeader(Authorization(bearer))) = authorization {
-        let token = bearer.token().to_owned();
-        let identity = Identity::new().set_token(token.clone());
-
-        if let Ok(identity_user) = identity.current_user().await
-            && let Ok(user) = commands::get_or_insert_user(&identity_user).await
-        {
-            batch_request = batch_request.data(user);
-        }
+    if let Ok(identity_user) = identity.current_user().await
+        && let Ok(user) = commands::get_or_insert_user(&identity_user).await
+    {
+        batch_request = batch_request.data(user);
     }
 
     Ok(schema.execute_batch(batch_request).await.into())

@@ -2,6 +2,8 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::identity_client::IdentityClient;
+
 #[derive(Deserialize, Serialize)]
 pub struct GenerateVideoHlsJob {
     pub video_id: Uuid,
@@ -9,6 +11,7 @@ pub struct GenerateVideoHlsJob {
 
 #[derive(Deserialize, Serialize)]
 pub struct NewUserJob {
+    pub identity_client: IdentityClient,
     pub user_id: Uuid,
 }
 

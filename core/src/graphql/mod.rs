@@ -10,7 +10,7 @@ use mutation_root::MutationRoot;
 use query_root::QueryRoot;
 use uuid::Uuid;
 
-use crate::models::User;
+use crate::{identity_client::IdentityClient, models::User};
 
 pub type GraphqlSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
@@ -25,12 +25,18 @@ impl GraphqlSchemaExt for GraphqlSchema {
 }
 
 trait CustomContext {
+    fn identity_client(&self) -> &IdentityClient;
+
     fn user(&self) -> &User;
 
     fn user_opt(&self) -> Option<&User>;
 }
 
 impl CustomContext for Context<'_> {
+    fn identity_client(&self) -> &IdentityClient {
+        self.data_unchecked::<IdentityClient>()
+    }
+
     fn user(&self) -> &User {
         self.data_unchecked::<User>()
     }

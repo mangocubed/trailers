@@ -3,6 +3,7 @@ use lettre::message::header::ContentType;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
 use lettre::{Message, transport::smtp::authentication::Credentials};
 
+use trailers_core::identity_client::IdentityClient;
 use trailers_core::models::User;
 
 use crate::config::MAILER_CONFIG;
@@ -46,8 +47,8 @@ async fn send_email(to: &str, subject: &str, body: &str) -> Result<(), BoxDynErr
     Ok(())
 }
 
-pub async fn send_welcome_email(user: &User) -> Result<(), BoxDynError> {
-    let identity_user = user.identity_user().await?;
+pub async fn send_welcome_email(identity_client: &IdentityClient, user: &User) -> Result<(), BoxDynError> {
+    let identity_user = user.identity_user(identity_client).await?;
 
     let message = format!(
         "Hello @{},
@@ -62,10 +63,12 @@ pub async fn send_welcome_email(user: &User) -> Result<(), BoxDynError> {
 }
 
 pub mod admin_emails {
+    use super::IdentityClient;
+
     use super::*;
 
-    pub async fn send_new_user_email(user: &User) -> Result<(), BoxDynError> {
-        let identity_user = user.identity_user().await?;
+    pub async fn send_new_user_email(identity_client: &IdentityClient, user: &User) -> Result<(), BoxDynError> {
+        let identity_user = user.identity_user(identity_client).await?;
 
         let message = format!(
             "Hello,

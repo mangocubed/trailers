@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::sync::LazyLock;
 
 use async_graphql::extensions::apollo_persisted_queries::{ApolloPersistedQueries, LruCacheStorage};
 use async_graphql::extensions::{ApolloTracing, Logger};
@@ -21,14 +22,19 @@ use tower_http::trace::TraceLayer;
 
 use trailers_core::config::STORAGE_CONFIG;
 use trailers_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
-use trailers_core::identity::Identity;
+use trailers_core::identity_client::IdentityClient;
 use trailers_core::{Info, commands, start_tracing_subscriber};
 
 use crate::config::API_CONFIG;
 
 mod config;
 
-const ERROR_UNAUTHORIZED: (StatusCode, &str) = (StatusCode::UNAUTHORIZED, "Unauthorized");
+static ERROR_UNAUTHORIZED: LazyLock<(StatusCode, Json<serde_json::Value>)> = LazyLock::new(|| {
+    (
+        StatusCode::UNAUTHORIZED,
+        Json(serde_json::json!({"message": "Unauthorized"})),
+    )
+});
 
 async fn get_index() -> impl IntoResponse {
     Json(Info::default())
@@ -41,24 +47,22 @@ async fn post_graphql(
     batch_request: GraphQLBatchRequest,
 ) -> Result<GraphQLResponse> {
     let Some(TypedHeader(Authorization(bearer))) = authorization else {
-        return Err(ERROR_UNAUTHORIZED.into());
+        return Err(ERROR_UNAUTHORIZED.clone().into());
     };
 
     let token = bearer.token().to_owned();
 
-    let identity = Identity::new().set_token(token.clone());
+    let identity_client = IdentityClient::new(&token);
 
-    if identity.authorized().await.is_err() {
-        return Err(ERROR_UNAUTHORIZED.into());
+    if identity_client.authorized().await.is_err() {
+        return Err(ERROR_UNAUTHORIZED.clone().into());
     }
 
     let mut batch_request = batch_request.into_inner();
 
-    batch_request = batch_request.data(client_ip);
+    batch_request = batch_request.data(identity_client.clone()).data(client_ip);
 
-    if let Ok(identity_user) = identity.current_user().await
-        && let Ok(user) = commands::get_or_insert_user(&identity_user).await
-    {
+    if let Ok(user) = commands::get_or_insert_user(&identity_client).await {
         batch_request = batch_request.data(user);
     }
 

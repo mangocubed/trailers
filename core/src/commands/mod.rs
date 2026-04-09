@@ -13,7 +13,7 @@ use url::Url;
 
 use crate::config::CACHE_CONFIG;
 use crate::constants::CACHE_PREFIX_GET_IDENTITY_USER;
-use crate::identity::{Identity, IdentityUser};
+use crate::identity_client::{IdentityClient, IdentityUser};
 
 mod genre_commands;
 mod keyword_commands;
@@ -105,8 +105,6 @@ async fn download_file(source_url: Url, dest_path: PathBuf) -> anyhow::Result<()
     ty = "AsyncRedisCache<String, IdentityUser<'_>>",
     create = r##"{ async_redis_cache(CACHE_PREFIX_GET_IDENTITY_USER).await }"##
 )]
-pub async fn get_identity_user(username_or_id: &str) -> anyhow::Result<IdentityUser<'static>> {
-    let identity_user = Identity::new().user(username_or_id).await?;
-
-    Ok(identity_user)
+pub async fn get_identity_user(client: &IdentityClient, username_or_id: &str) -> anyhow::Result<IdentityUser<'static>> {
+    Ok(client.user(username_or_id).await?)
 }

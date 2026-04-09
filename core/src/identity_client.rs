@@ -30,33 +30,20 @@ impl Display for IdentityUser<'_> {
     }
 }
 
-pub struct Identity {
-    api_url: Url,
-    token: Option<String>,
+#[derive(Clone, Deserialize, Serialize)]
+pub struct IdentityClient {
+    token: String,
 }
 
-impl Default for Identity {
-    fn default() -> Self {
+impl IdentityClient {
+    pub fn new(token: &str) -> Self {
         Self {
-            api_url: IDENTITY_CONFIG.api_url.clone(),
-            token: None,
+            token: token.to_owned(),
         }
-    }
-}
-
-impl Identity {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn set_token(mut self, token: String) -> Self {
-        self.token = Some(token);
-
-        self
     }
 
     fn request_url(&self, path: &str) -> Url {
-        self.api_url.join(path).unwrap()
+        IDENTITY_CONFIG.api_url.join(path).unwrap()
     }
 
     pub async fn get<T>(&self, path: &str) -> Result<T>
@@ -74,11 +61,7 @@ impl Identity {
 
         request_url.set_query(query);
 
-        let mut client = reqwest::Client::new().get(request_url.clone());
-
-        if let Some(token) = &self.token {
-            client = client.bearer_auth(token);
-        }
+        let client = reqwest::Client::new().get(request_url.clone()).bearer_auth(&self.token);
 
         let result = client.send().await?.error_for_status()?.json().await;
 

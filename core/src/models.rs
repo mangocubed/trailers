@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::config::STORAGE_CONFIG;
 use crate::enums::{TitleCrewJob, TitleMediaType, VideoOrientation, VideoSource, VideoType};
-use crate::identity::IdentityUser;
+use crate::identity_client::{IdentityClient, IdentityUser};
 use crate::{commands, jobs_storage};
 
 pub struct Genre<'a> {
@@ -210,8 +210,8 @@ impl Display for User {
 }
 
 impl User {
-    pub async fn identity_user(&self) -> anyhow::Result<IdentityUser<'_>> {
-        commands::get_identity_user(&self.identity_user_id.to_string()).await
+    pub async fn identity_user(&self, client: &IdentityClient) -> anyhow::Result<IdentityUser<'_>> {
+        commands::get_identity_user(client, &self.identity_user_id.to_string()).await
     }
 }
 

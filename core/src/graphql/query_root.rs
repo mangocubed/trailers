@@ -104,8 +104,10 @@ impl QueryRoot {
         .await
     }
 
-    async fn user(&self, username: String) -> Option<UserObject> {
-        let identity_user = commands::get_identity_user(&username).await.ok()?;
+    async fn user(&self, ctx: &Context<'_>, username: String) -> Option<UserObject> {
+        let identity_user = commands::get_identity_user(ctx.identity_client(), &username)
+            .await
+            .ok()?;
 
         commands::get_user_by_identity_user(&identity_user)
             .await

@@ -15,11 +15,12 @@ pub mod graphql;
 pub mod commands;
 pub mod config;
 pub mod enums;
-pub mod identity;
+pub mod identity_client;
 pub mod jobs;
 pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG, SENTRY_CONFIG};
+use crate::identity_client::IdentityClient;
 use crate::jobs::{GenerateVideoHlsJob, NewUserJob, PopulateJob, TitleRecommendationsJob};
 use crate::models::{Title, User, Video};
 
@@ -126,10 +127,13 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
-    pub(crate) async fn push_new_user(&self, user: &User) {
+    pub(crate) async fn push_new_user(&self, identity_client: &IdentityClient, user: &User) {
         self.new_user
             .clone()
-            .push(NewUserJob { user_id: user.id })
+            .push(NewUserJob {
+                identity_client: identity_client.clone(),
+                user_id: user.id,
+            })
             .await
             .expect("Could not store job");
     }

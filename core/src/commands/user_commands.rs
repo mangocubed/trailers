@@ -3,7 +3,7 @@ use cached::proc_macro::io_cached;
 use uuid::Uuid;
 
 use crate::constants::*;
-use crate::identity::IdentityUser;
+use crate::identity_client::{IdentityClient, IdentityUser};
 use crate::models::User;
 use crate::{db_pool, jobs_storage};
 
@@ -47,8 +47,10 @@ pub async fn get_user_by_id(id: Uuid) -> sqlx::Result<User> {
     .await
 }
 
-pub async fn get_or_insert_user(identity_user: &IdentityUser<'_>) -> sqlx::Result<User> {
-    if let Ok(user) = get_user_by_identity_user(identity_user).await {
+pub async fn get_or_insert_user(identity_client: &IdentityClient) -> anyhow::Result<User> {
+    let identity_user = identity_client.current_user().await?;
+
+    if let Ok(user) = get_user_by_identity_user(&identity_user).await {
         return Ok(user);
     }
 
@@ -62,7 +64,7 @@ pub async fn get_or_insert_user(identity_user: &IdentityUser<'_>) -> sqlx::Resul
     .fetch_one(db_pool)
     .await?;
 
-    jobs_storage().await.push_new_user(&user).await;
+    jobs_storage().await.push_new_user(identity_client, &user).await;
 
     Ok(user)
 }

@@ -1,11 +1,12 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
-use async_graphql::{ID, Object, Result};
+use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
 use crate::commands;
-use crate::identity::IdentityUser;
+use crate::graphql::CustomContext;
+use crate::identity_client::IdentityUser;
 use crate::models::User;
 use crate::pagination::CursorParams;
 
@@ -60,8 +61,12 @@ impl UserObject {
         self.0.id.into()
     }
 
-    async fn identity_user(&self) -> Result<IdentityUserObject<'_>> {
-        Ok(self.0.identity_user().await.map(IdentityUserObject)?)
+    async fn identity_user(&self, ctx: &Context<'_>) -> Result<IdentityUserObject<'_>> {
+        Ok(self
+            .0
+            .identity_user(ctx.identity_client())
+            .await
+            .map(IdentityUserObject)?)
     }
 
     async fn title_ties(

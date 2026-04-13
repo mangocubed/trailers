@@ -142,6 +142,35 @@ impl TitleCrewObject<'_> {
     }
 }
 
+pub struct TitleStatObject(pub TitleStat);
+
+#[Object]
+impl TitleStatObject {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn bookmarks_count(&self) -> i64 {
+        self.0.bookmarks_count
+    }
+
+    async fn likes_count(&self) -> i64 {
+        self.0.likes_count
+    }
+
+    async fn watch_count(&self) -> i64 {
+        self.0.watch_count
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
 pub struct TitleWatchProviderObject(pub TitleWatchProvider);
 
 #[Object]

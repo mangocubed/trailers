@@ -1,5 +1,5 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
-use async_graphql::{Context, ID, Object};
+use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, NaiveDate, TimeDelta, Utc};
 use url::Url;
 use uuid::Uuid;
@@ -48,7 +48,7 @@ impl TitleObject<'_> {
         &self,
         after: Option<Uuid>,
         first: Option<i32>,
-    ) -> async_graphql::Result<Connection<Uuid, TitleCastObject<'_>, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<Uuid, TitleCastObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
             None,
@@ -78,7 +78,7 @@ impl TitleObject<'_> {
         after: Option<Uuid>,
         first: Option<i32>,
         jobs: Option<Vec<TitleCrewJob>>,
-    ) -> async_graphql::Result<Connection<Uuid, TitleCrewObject<'_>, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<Uuid, TitleCrewObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
             None,
@@ -107,7 +107,7 @@ impl TitleObject<'_> {
         &self,
         after: Option<ID>,
         first: Option<i32>,
-    ) -> async_graphql::Result<Connection<Uuid, GenreObject<'_>, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<Uuid, GenreObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
             None,
@@ -136,7 +136,7 @@ impl TitleObject<'_> {
         &self,
         after: Option<ID>,
         first: Option<i32>,
-    ) -> async_graphql::Result<Connection<Uuid, KeywordObject<'_>, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<Uuid, KeywordObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
             None,
@@ -165,7 +165,7 @@ impl TitleObject<'_> {
         &self,
         after: Option<Uuid>,
         first: Option<i32>,
-    ) -> async_graphql::Result<Connection<Uuid, VideoObject<'_>, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<Uuid, VideoObject<'_>, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
             None,
@@ -195,7 +195,7 @@ impl TitleObject<'_> {
         after: Option<Uuid>,
         first: Option<i32>,
         country_code: Option<String>,
-    ) -> async_graphql::Result<Connection<Uuid, TitleWatchProviderObject, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<Uuid, TitleWatchProviderObject, EmptyFields, EmptyFields>> {
         query(
             after.map(|a| a.to_string()),
             None,
@@ -222,6 +222,10 @@ impl TitleObject<'_> {
             },
         )
         .await
+    }
+
+    async fn stat(&self) -> Result<TitleStatObject> {
+        Ok(self.0.stat().await.map(TitleStatObject)?)
     }
 
     async fn current_user_tie(&self, ctx: &Context<'_>) -> Option<UserTitleTieObject> {

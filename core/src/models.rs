@@ -175,6 +175,9 @@ pub struct TitleCrew<'a> {
 pub struct TitleStat {
     pub id: Uuid,
     pub title_id: Uuid,
+    pub bookmarks_count: i64,
+    pub likes_count: i64,
+    pub watch_count: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }

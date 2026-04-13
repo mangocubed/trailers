@@ -6,7 +6,8 @@ pub async fn get_or_insert_title_stat(title: &Title<'_>) -> sqlx::Result<TitleSt
 
     if let Ok(title_stat) = sqlx::query_as!(
         TitleStat,
-        "SELECT id, title_id, created_at, updated_at FROM title_stats WHERE title_id = $1",
+        "SELECT id, title_id, bookmarks_count, likes_count, watch_count, created_at, updated_at FROM title_stats
+        WHERE title_id = $1",
         title.id
     )
     .fetch_one(db_pool)
@@ -17,7 +18,8 @@ pub async fn get_or_insert_title_stat(title: &Title<'_>) -> sqlx::Result<TitleSt
 
     sqlx::query_as!(
         TitleStat,
-        "INSERT INTO title_stats (title_id) VALUES ($1) RETURNING id, title_id, created_at, updated_at",
+        "INSERT INTO title_stats (title_id) VALUES ($1)
+        RETURNING id, title_id, bookmarks_count, likes_count, watch_count, created_at, updated_at",
         title.id
     )
     .fetch_one(db_pool)

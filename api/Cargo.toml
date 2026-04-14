@@ -13,7 +13,7 @@ async-graphql = { workspace = true, features = [
     "log",
 ] }
 async-graphql-axum = "8.0.0-rc.4"
-axum = "0.8.8"
+axum = "0.8.9"
 axum-client-ip = "1.3.1"
 axum-extra = { version = "0.12.5", features = ["typed-header"] }
 envconfig.workspace = true

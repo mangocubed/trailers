@@ -16,6 +16,7 @@ pub struct TmdbCast<'a> {
     pub name: Cow<'a, str>,
     pub profile_path: Option<Cow<'a, str>>,
     pub character: String,
+    pub order: i16,
 }
 
 impl TmdbCast<'_> {

@@ -158,6 +158,7 @@ pub struct TitleCast<'a> {
     pub person_id: Uuid,
     pub tmdb_credit_id: Cow<'a, str>,
     pub character_name: Cow<'a, str>,
+    pub position: i16,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }

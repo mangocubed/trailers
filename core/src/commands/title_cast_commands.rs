@@ -16,20 +16,24 @@ pub async fn get_title_cast_by_id<'a>(id: Uuid) -> sqlx::Result<TitleCast<'a>> {
     .await
 }
 
-pub async fn insert_title_cast(
+pub async fn insert_or_update_title_cast(
     title: &Title<'_>,
     person: &Person<'_>,
     tmdb_credit_id: &str,
     character_name: &str,
+    position: i16,
 ) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
 
     sqlx::query!(
-        r#"INSERT INTO title_cast (title_id, person_id, tmdb_credit_id, character_name) VALUES ($1, $2, $3, $4)"#,
+        r#"INSERT INTO title_cast (title_id, person_id, tmdb_credit_id, character_name, position)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (title_id, person_id) DO UPDATE SET tmdb_credit_id = $3, character_name = $4, position = $5"#,
         title.id,       // $1
         person.id,      // $2
         tmdb_credit_id, // $3
         character_name, // $4
+        position,       // $5
     )
     .execute(db_pool)
     .await?;
@@ -45,21 +49,18 @@ pub async fn paginate_title_cast<'a>(cursor_params: &CursorParams, title: &Title
         |node: &TitleCast| node.id,
         async |after| get_title_cast_by_id(after).await.ok(),
         async |cursor_resource, limit| {
-            let (cursor_id, cursor_character_name) = cursor_resource
-                .map(|r| (Some(r.id), Some(r.character_name)))
+            let (cursor_id, cursor_position) = cursor_resource
+                .map(|r| (Some(r.id), Some(r.position)))
                 .unwrap_or_default();
 
             sqlx::query_as!(
                 TitleCast,
-                "SELECT * FROM title_cast
-                WHERE
-                    ($1::uuid IS NULL OR $2::text IS NULL OR character_name > $2 OR (character_name = $2 AND id > $1))
-                    AND title_id = $3
-                ORDER BY character_name ASC, id ASC LIMIT $4",
-                cursor_id,                        // $1
-                cursor_character_name.as_deref(), // $2
-                title.id,                         // $3
-                limit                             // $4
+                "SELECT * FROM title_cast WHERE title_id = $1 AND ($2::uuid IS NULL OR (position, id) > ($3, $2))
+                ORDER BY position ASC, id ASC LIMIT $4",
+                title.id,        // $1
+                cursor_id,       // $2
+                cursor_position, // $3
+                limit            // $4
             )
             .fetch_all(db_pool)
             .await

@@ -248,7 +248,14 @@ async fn populate_title_cast_and_crew(title: &Title<'_>) -> anyhow::Result<()> {
             continue;
         };
 
-        let _ = commands::insert_title_cast(title, &person, &tmdb_cast.credit_id, &tmdb_cast.character).await;
+        let _ = commands::insert_or_update_title_cast(
+            title,
+            &person,
+            &tmdb_cast.credit_id,
+            &tmdb_cast.character,
+            tmdb_cast.order,
+        )
+        .await;
     }
 
     for tmdb_crew in tmdb_credits.crew {

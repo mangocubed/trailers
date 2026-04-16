@@ -386,7 +386,7 @@ pub async fn populate_videos(title: &Title<'_>) -> anyhow::Result<()> {
             && tmdb_video.official
     });
 
-    tmdb_videos.sort_by(|a, b| b.published_at.cmp(&a.published_at));
+    tmdb_videos.sort_by_key(|b| std::cmp::Reverse(b.published_at));
 
     for tmdb_video in tmdb_videos {
         let video_type = if tmdb_video.r#type == "Teaser" {

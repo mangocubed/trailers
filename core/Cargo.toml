@@ -37,6 +37,7 @@ sqlx = { version = "0.8.6", features = [
     "chrono",
     "postgres",
     "runtime-tokio",
+    "tls-native-tls",
     "uuid",
 ] }
 tokio.workspace = true

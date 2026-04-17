@@ -3,7 +3,8 @@ use lettre::message::header::ContentType;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
 use lettre::{Message, transport::smtp::authentication::Credentials};
 
-use trailers_core::identity_client::IdentityClient;
+use toolbox::identity_client::IdentityClient;
+
 use trailers_core::models::User;
 
 use crate::config::MAILER_CONFIG;

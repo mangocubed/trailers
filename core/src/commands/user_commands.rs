@@ -2,8 +2,9 @@ use cached::AsyncRedisCache;
 use cached::proc_macro::io_cached;
 use uuid::Uuid;
 
+use toolbox::identity_client::{IdentityClient, IdentityUser};
+
 use crate::constants::*;
-use crate::identity_client::{IdentityClient, IdentityUser};
 use crate::models::User;
 use crate::{db_pool, jobs_storage};
 

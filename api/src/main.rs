@@ -20,9 +20,10 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
+use toolbox::identity_client::IdentityClient;
+
 use trailers_core::config::STORAGE_CONFIG;
 use trailers_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
-use trailers_core::identity_client::IdentityClient;
 use trailers_core::{Info, commands, start_tracing_subscriber};
 
 use crate::config::API_CONFIG;
@@ -51,7 +52,6 @@ async fn post_graphql(
     };
 
     let token = bearer.token().to_owned();
-
     let identity_client = IdentityClient::new(&token);
 
     if identity_client.authorized().await.is_err() {

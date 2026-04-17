@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::identity_client::IdentityClient;
+use toolbox::identity_client::IdentityClient;
 
 #[derive(Deserialize, Serialize)]
 pub struct GenerateVideoHlsJob {

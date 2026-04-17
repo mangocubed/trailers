@@ -8,8 +8,6 @@ use url::Url;
 pub(crate) static CACHE_CONFIG: LazyLock<CacheConfig> = LazyLock::new(|| CacheConfig::init_from_env().unwrap());
 pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
     LazyLock::new(|| DatabaseConfig::init_from_env().unwrap());
-pub(crate) static IDENTITY_CONFIG: LazyLock<IdentityConfig> =
-    LazyLock::new(|| IdentityConfig::init_from_env().unwrap());
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
 pub(crate) static SENTRY_CONFIG: LazyLock<SentryConfig> = LazyLock::new(|| SentryConfig::init_from_env().unwrap());
 pub static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
@@ -38,12 +36,6 @@ pub(crate) struct DatabaseConfig {
         default = "postgres://mango3:mango3@127.0.0.1:5432/trailers_dev"
     )]
     pub url: String,
-}
-
-#[derive(Envconfig)]
-pub struct IdentityConfig {
-    #[envconfig(from = "IDENTITY_API_URL", default = "http://127.0.0.1:8005")]
-    pub api_url: Url,
 }
 
 #[derive(Envconfig)]

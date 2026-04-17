@@ -4449,6 +4449,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "toolbox"
+version = "0.0.0-alpha.0"
+source = "git+https://github.com/mangocubed/toolbox.git#3151d5645831f3e40a0397d0c0098422f54e9038"
+dependencies = [
+ "chrono",
+ "envconfig",
+ "reqwest",
+ "serde",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "tower"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4580,9 +4594,11 @@ dependencies = [
  "sentry",
  "serde_json",
  "tokio",
+ "toolbox",
  "tower-http",
  "tracing",
  "trailers-core",
+ "url",
 ]
 
 [[package]]
@@ -4616,6 +4632,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tokio",
+ "toolbox",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -4636,6 +4653,7 @@ dependencies = [
  "sentry",
  "serde",
  "tokio",
+ "toolbox",
  "tracing",
  "trailers-core",
  "url",

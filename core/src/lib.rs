@@ -6,6 +6,8 @@ use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tokio::sync::OnceCell;
 
+use toolbox::identity_client::IdentityClient;
+
 mod constants;
 mod pagination;
 
@@ -15,12 +17,10 @@ pub mod graphql;
 pub mod commands;
 pub mod config;
 pub mod enums;
-pub mod identity_client;
 pub mod jobs;
 pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG, SENTRY_CONFIG};
-use crate::identity_client::IdentityClient;
 use crate::jobs::{GenerateVideoHlsJob, NewUserJob, PopulateJob, TitleRecommendationsJob};
 use crate::models::{Title, User, Video};
 

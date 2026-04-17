@@ -1,4 +1,5 @@
 use async_graphql::{Context, EmptySubscription, ID, Result, Schema, SchemaBuilder};
+use uuid::Uuid;
 
 mod guards;
 mod input_objects;
@@ -6,11 +7,12 @@ mod mutation_root;
 mod objects;
 mod query_root;
 
+use toolbox::identity_client::IdentityClient;
+
+use crate::models::User;
+
 use mutation_root::MutationRoot;
 use query_root::QueryRoot;
-use uuid::Uuid;
-
-use crate::{identity_client::IdentityClient, models::User};
 
 pub type GraphqlSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 

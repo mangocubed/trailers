@@ -4,9 +4,10 @@ use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
+use toolbox::identity_client::IdentityUser;
+
 use crate::commands;
 use crate::graphql::CustomContext;
-use crate::identity_client::IdentityUser;
 use crate::models::User;
 use crate::pagination::CursorParams;
 

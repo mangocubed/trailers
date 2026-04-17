@@ -11,9 +11,10 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 
+use toolbox::identity_client::{IdentityClient, IdentityUser};
+
 use crate::config::CACHE_CONFIG;
 use crate::constants::CACHE_PREFIX_GET_IDENTITY_USER;
-use crate::identity_client::{IdentityClient, IdentityUser};
 
 mod genre_commands;
 mod keyword_commands;

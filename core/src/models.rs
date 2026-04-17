@@ -8,9 +8,10 @@ use sqlx::postgres::types::PgInterval;
 use url::Url;
 use uuid::Uuid;
 
+use toolbox::identity_client::{IdentityClient, IdentityUser};
+
 use crate::config::STORAGE_CONFIG;
 use crate::enums::{TitleCrewJob, TitleMediaType, VideoOrientation, VideoSource, VideoType};
-use crate::identity_client::{IdentityClient, IdentityUser};
 use crate::{commands, jobs_storage};
 
 pub struct Genre<'a> {

@@ -4451,13 +4451,16 @@ dependencies = [
 [[package]]
 name = "toolbox"
 version = "0.0.0-alpha.0"
-source = "git+https://github.com/mangocubed/toolbox.git?rev=a1cb217#a1cb2171d0a48504e7a914a390c1355e0b3613d3"
+source = "git+https://github.com/mangocubed/toolbox.git?rev=a4ae527#a4ae527ca191f5f52cd9d01671202dca8c28091e"
 dependencies = [
+ "async-graphql",
  "chrono",
  "envconfig",
  "reqwest",
+ "sentry",
  "serde",
  "tracing",
+ "tracing-subscriber",
  "url",
  "uuid",
 ]
@@ -4626,14 +4629,11 @@ dependencies = [
  "regex",
  "reqwest",
  "rust_iso3166",
- "sentry",
  "serde",
  "serde_json",
  "sqlx",
  "tokio",
  "toolbox",
- "tracing",
- "tracing-subscriber",
  "url",
  "uuid",
 ]

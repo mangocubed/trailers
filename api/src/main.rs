@@ -21,10 +21,11 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
 use toolbox::identity_client::IdentityClient;
+use toolbox::tracing::start_tracing_subscriber;
 
 use trailers_core::config::STORAGE_CONFIG;
 use trailers_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
-use trailers_core::{Info, commands, start_tracing_subscriber};
+use trailers_core::{Info, commands};
 
 use crate::config::API_CONFIG;
 

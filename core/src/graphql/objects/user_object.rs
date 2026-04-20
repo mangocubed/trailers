@@ -5,11 +5,11 @@ use url::Url;
 use uuid::Uuid;
 
 use toolbox::identity_client::IdentityUser;
+use toolbox::pagination::CursorParams;
 
 use crate::commands;
 use crate::graphql::CustomContext;
 use crate::models::User;
-use crate::pagination::CursorParams;
 
 use super::UserTitleTieObject;
 

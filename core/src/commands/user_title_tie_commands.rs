@@ -1,8 +1,9 @@
 use chrono::Utc;
 use uuid::Uuid;
 
+use toolbox::pagination::{CursorPage, CursorParams};
+
 use crate::models::{Title, User, UserTitleTie};
-use crate::pagination::{CursorPage, CursorParams};
 use crate::{db_pool, jobs_storage};
 
 pub async fn get_or_insert_user_title_tie(user: &User, title: &Title<'_>) -> sqlx::Result<UserTitleTie> {

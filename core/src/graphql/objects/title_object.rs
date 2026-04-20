@@ -4,11 +4,12 @@ use chrono::{DateTime, NaiveDate, TimeDelta, Utc};
 use url::Url;
 use uuid::Uuid;
 
+use toolbox::pagination::CursorParams;
+
 use crate::commands;
 use crate::enums::{TitleCrewJob, TitleMediaType};
 use crate::graphql::CustomContext;
 use crate::models::Title;
-use crate::pagination::CursorParams;
 
 use super::*;
 

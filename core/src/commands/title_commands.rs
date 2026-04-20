@@ -5,10 +5,11 @@ use sqlx::postgres::types::PgInterval;
 use url::Url;
 use uuid::Uuid;
 
+use toolbox::pagination::{CursorPage, CursorParams};
+
 use crate::constants::CACHE_PREFIX_GET_TITLE_BY_ID;
 use crate::enums::TitleMediaType;
 use crate::models::{Title, User};
-use crate::pagination::{CursorPage, CursorParams};
 use crate::{db_pool, jobs_storage};
 
 use super::{AsyncRedisCacheExt, async_redis_cache, download_file, get_or_insert_title_stat};

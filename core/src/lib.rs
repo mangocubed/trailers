@@ -9,7 +9,6 @@ use tokio::sync::OnceCell;
 use toolbox::identity_client::IdentityClient;
 
 mod constants;
-mod pagination;
 
 #[cfg(feature = "graphql")]
 pub mod graphql;

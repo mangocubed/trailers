@@ -3,10 +3,11 @@ use cached::proc_macro::io_cached;
 use url::Url;
 use uuid::Uuid;
 
+use toolbox::pagination::{CursorPage, CursorParams};
+
 use crate::constants::CACHE_PREFIX_GET_WATCH_PROVIDER_BY_ID;
 use crate::db_pool;
 use crate::models::{Title, TitleWatchProvider, WatchProvider};
-use crate::pagination::{CursorPage, CursorParams};
 
 use super::{async_redis_cache, download_file};
 

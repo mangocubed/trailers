@@ -3,10 +3,11 @@ use std::process::Command;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use toolbox::pagination::{CursorPage, CursorParams};
+
 use crate::config::YT_DLP_CONFIG;
 use crate::enums::{VideoOrientation, VideoSource, VideoType};
 use crate::models::{Title, Video};
-use crate::pagination::{CursorPage, CursorParams};
 use crate::{db_pool, jobs_storage};
 
 async fn delete_video(video: &Video<'_>) -> sqlx::Result<()> {

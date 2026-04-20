@@ -1,8 +1,9 @@
 use uuid::Uuid;
 
+use toolbox::pagination::{CursorPage, CursorParams};
+
 use crate::db_pool;
 use crate::models::{Keyword, Title};
-use crate::pagination::{CursorPage, CursorParams};
 
 pub async fn get_keyword_by_id<'a>(id: Uuid) -> sqlx::Result<Keyword<'a>> {
     let db_pool = db_pool().await;

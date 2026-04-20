@@ -9,7 +9,6 @@ pub(crate) static CACHE_CONFIG: LazyLock<CacheConfig> = LazyLock::new(|| CacheCo
 pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
     LazyLock::new(|| DatabaseConfig::init_from_env().unwrap());
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
-pub(crate) static SENTRY_CONFIG: LazyLock<SentryConfig> = LazyLock::new(|| SentryConfig::init_from_env().unwrap());
 pub static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
 pub(crate) static YT_DLP_CONFIG: LazyLock<YtDlpConfig> = LazyLock::new(|| YtDlpConfig::init_from_env().unwrap());
 
@@ -42,16 +41,6 @@ pub(crate) struct DatabaseConfig {
 pub(crate) struct MonitorConfig {
     #[envconfig(from = "MONITOR_REDIS_URL", default = "redis://127.0.0.1:6379/1")]
     pub redis_url: String,
-}
-
-#[derive(Envconfig)]
-pub struct SentryConfig {
-    #[envconfig(from = "SENTRY_DSN")]
-    pub dsn: Option<String>,
-    #[envconfig(from = "SENTRY_TRACES_SAMPLE_RATE", default = "1.0")]
-    pub traces_sample_rate: f32,
-    #[envconfig(from = "SENTRY_SEND_DEFAULT_PII", default = "true")]
-    pub send_default_pii: bool,
 }
 
 #[derive(Envconfig)]

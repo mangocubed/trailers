@@ -24,7 +24,6 @@ Movies and TV Series recommendations.
 | CACHE_TTL_SECS               | Number  | 3600                                                 | api,monitor     |
 | DATABASE_MAX_CONNECTIONS     | Number  | 5                                                    | api,monitor     |
 | DATABASE_URL                 | String  | postgres://mango3:mango3@127.0.0.1:5432/trailers_dev | api,monitor     |
-| IDENTITY_API_URL             | String  | https://api.id.mango3.app/                           | api             |
 | MAILER_ENABLE                | Boolean | false                                                | monitor         |
 | MAILER_SENDER_ADDRESS        | String  | Mango³ dev <no-reply@localhost>                      | monitor         |
 | MAILER_SMTP_ADDRESS          | String  | localhost                                            | monitor         |
@@ -33,9 +32,6 @@ Movies and TV Series recommendations.
 | MAILER_SMTP_USERNAME         | String  |                                                      | monitor         |
 | MAILER_SUPPORT_EMAIL_ADDRESS | String  | support@localhost                                    | monitor         |
 | MONITOR_REDIS_URL            | String  | redis://127.0.0.1:6379/1                             | api,cli,monitor |
-| SENTRY_DSN                   | String  |                                                      | api,monitor     |
-| SENTRY_TRACES_SAMPLE_RATE    | Number  | 1.0                                                  | api,monitor     |
-| SENTRY_SEND_DEFAULT_PII      | Boolean | true                                                 | api,monitor     |
 | STORAGE_PATH                 | String  | ./storage/                                           | api,monitor     |
 | STORAGE_URL                  | String  | http://127.0.0.1:8005/storage/                       | api             |
 | TMDB_API_KEY                 | String  |                                                      | monitor         |

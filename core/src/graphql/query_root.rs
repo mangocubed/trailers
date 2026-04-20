@@ -2,10 +2,11 @@ use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object};
 use uuid::Uuid;
 
+use toolbox::pagination::CursorParams;
+
 use crate::enums::TitleMediaType;
 use crate::graphql::objects::{GenreObject, InfoObject, TitleObject, UserObject, WatchProviderObject};
 use crate::graphql::{CustomContext, IDExt};
-use crate::pagination::CursorParams;
 use crate::{Info, commands};
 
 pub struct QueryRoot;

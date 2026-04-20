@@ -4451,7 +4451,7 @@ dependencies = [
 [[package]]
 name = "toolbox"
 version = "0.0.0-alpha.0"
-source = "git+https://github.com/mangocubed/toolbox.git#3151d5645831f3e40a0397d0c0098422f54e9038"
+source = "git+https://github.com/mangocubed/toolbox.git?rev=a1cb217#a1cb2171d0a48504e7a914a390c1355e0b3613d3"
 dependencies = [
  "chrono",
  "envconfig",
@@ -4609,7 +4609,6 @@ dependencies = [
  "clap",
  "tokio",
  "trailers-core",
- "trailers-monitor",
 ]
 
 [[package]]

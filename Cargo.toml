@@ -27,5 +27,4 @@ tokio = { version = "1.52.0", features = [
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
 trailers-core = { path = "./core", default-features = false }
-trailers-monitor.path = "./monitor"
-toolbox = { git = "https://github.com/mangocubed/toolbox.git" }
+toolbox = { git = "https://github.com/mangocubed/toolbox.git", rev = "a1cb217" }

@@ -1,8 +1,9 @@
 use uuid::Uuid;
 
+use toolbox::pagination::{CursorPage, CursorParams};
+
 use crate::db_pool;
 use crate::models::{Person, Title, TitleCast};
-use crate::pagination::{CursorPage, CursorParams};
 
 pub async fn get_title_cast_by_id<'a>(id: Uuid) -> sqlx::Result<TitleCast<'a>> {
     let db_pool = db_pool().await;

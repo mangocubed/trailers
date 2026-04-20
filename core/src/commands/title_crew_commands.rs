@@ -1,9 +1,10 @@
 use uuid::Uuid;
 
+use toolbox::pagination::{CursorPage, CursorParams};
+
 use crate::db_pool;
 use crate::enums::TitleCrewJob;
 use crate::models::{Person, Title, TitleCrew};
-use crate::pagination::{CursorPage, CursorParams};
 
 pub async fn get_title_crew_by_id<'a>(id: Uuid) -> sqlx::Result<TitleCrew<'a>> {
     let db_pool = db_pool().await;

@@ -11,4 +11,3 @@ chrono.workspace = true
 clap = { version = "4.6.0", features = ["derive"] }
 tokio.workspace = true
 trailers-core = { workspace = true, features = ["graphql"] }
-trailers-monitor.workspace = true

@@ -8,7 +8,6 @@ use md5::{Digest, Md5};
 use url::Url;
 
 use toolbox::cache::redis_cache_store;
-
 use toolbox::identity_client::{IdentityClient, IdentityUser};
 
 use crate::constants::CACHE_PREFIX_GET_IDENTITY_USER;

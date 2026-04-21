@@ -46,4 +46,4 @@ toolbox.workspace = true
 
 [features]
 default = ["graphql"]
-graphql = ["dep:async-graphql", "dep:regex"]
+graphql = ["dep:async-graphql", "dep:regex", "toolbox/graphql"]

@@ -20,8 +20,6 @@ Movies and TV Series recommendations.
 | API_ADDRESS                  | String  | 127.0.0.1:8005                                       | api             |
 | API_CLIENT_IP_SOURCE         | String  | ConnectInfo                                          | api             |
 | API_SERVE_STORAGE            | Boolean | true                                                 | api             |
-| CACHE_REDIS_URL              | String  | redis://127.0.0.1:6379/0                             | api,monitor     |
-| CACHE_TTL_SECS               | Number  | 3600                                                 | api,monitor     |
 | DATABASE_MAX_CONNECTIONS     | Number  | 5                                                    | api,monitor     |
 | DATABASE_URL                 | String  | postgres://mango3:mango3@127.0.0.1:5432/trailers_dev | api,monitor     |
 | MAILER_ENABLE                | Boolean | false                                                | monitor         |
@@ -36,3 +34,5 @@ Movies and TV Series recommendations.
 | STORAGE_URL                  | String  | http://127.0.0.1:8005/storage/                       | api             |
 | TMDB_API_KEY                 | String  |                                                      | monitor         |
 | YT_DLP_PROXY                 | String  |                                                      | monitor         |
+
+Other environment variables: https://github.com/mangocubed/toolbox#environment-variables

@@ -5,6 +5,7 @@ use sqlx::postgres::types::PgInterval;
 use url::Url;
 use uuid::Uuid;
 
+use toolbox::cache::{AsyncRedisCacheExt, redis_cache_store};
 use toolbox::pagination::{CursorPage, CursorParams};
 
 use crate::constants::CACHE_PREFIX_GET_TITLE_BY_ID;
@@ -12,7 +13,7 @@ use crate::enums::TitleMediaType;
 use crate::models::{Title, User};
 use crate::{db_pool, jobs_storage};
 
-use super::{AsyncRedisCacheExt, async_redis_cache, download_file, get_or_insert_title_stat};
+use super::{download_file, get_or_insert_title_stat};
 
 pub async fn delete_title(title: &Title<'_>) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
@@ -32,7 +33,7 @@ pub async fn delete_title(title: &Title<'_>) -> sqlx::Result<()> {
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, Title<'_>>",
-    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_TITLE_BY_ID).await }"##
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_TITLE_BY_ID).await }"##
 )]
 async fn get_cached_title_by_id(id: Uuid) -> sqlx::Result<Title<'static>> {
     let db_pool = db_pool().await;

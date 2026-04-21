@@ -2,13 +2,12 @@ use cached::AsyncRedisCache;
 use cached::proc_macro::io_cached;
 use uuid::Uuid;
 
+use toolbox::cache::redis_cache_store;
 use toolbox::identity_client::{IdentityClient, IdentityUser};
 
 use crate::constants::*;
 use crate::models::User;
 use crate::{db_pool, jobs_storage};
-
-use super::async_redis_cache;
 
 pub async fn get_user_by_identity_user(identity_user: &IdentityUser<'_>) -> sqlx::Result<User> {
     get_user_by_identity_user_id(identity_user.id).await
@@ -17,7 +16,7 @@ pub async fn get_user_by_identity_user(identity_user: &IdentityUser<'_>) -> sqlx
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, User>",
-    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_BY_IDENTITY_USER_ID).await }"##
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_USER_BY_IDENTITY_USER_ID).await }"##
 )]
 async fn get_user_by_identity_user_id(identity_user_id: Uuid) -> sqlx::Result<User> {
     let db_pool = db_pool().await;
@@ -34,7 +33,7 @@ async fn get_user_by_identity_user_id(identity_user_id: Uuid) -> sqlx::Result<Us
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, User>",
-    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_USER_BY_ID).await }"##
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_USER_BY_ID).await }"##
 )]
 pub async fn get_user_by_id(id: Uuid) -> sqlx::Result<User> {
     let db_pool = db_pool().await;

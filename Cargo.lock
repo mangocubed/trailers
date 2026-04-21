@@ -4451,9 +4451,10 @@ dependencies = [
 [[package]]
 name = "toolbox"
 version = "0.0.0-alpha.0"
-source = "git+https://github.com/mangocubed/toolbox.git?rev=a4ae527#a4ae527ca191f5f52cd9d01671202dca8c28091e"
+source = "git+https://github.com/mangocubed/toolbox.git?rev=5be19cd#5be19cd7b1c0d4db8642245ee9114859c25b6c01"
 dependencies = [
  "async-graphql",
+ "cached",
  "chrono",
  "envconfig",
  "reqwest",

@@ -1,19 +1,16 @@
-use std::fmt::Display;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-use cached::async_sync::OnceCell;
+use cached::AsyncRedisCache;
 use cached::proc_macro::io_cached;
-use cached::{AsyncRedisCache, IOCachedAsync};
 use md5::{Digest, Md5};
-use serde::Serialize;
-use serde::de::DeserializeOwned;
 use url::Url;
+
+use toolbox::cache::redis_cache_store;
 
 use toolbox::identity_client::{IdentityClient, IdentityUser};
 
-use crate::config::CACHE_CONFIG;
 use crate::constants::CACHE_PREFIX_GET_IDENTITY_USER;
 
 mod genre_commands;
@@ -41,38 +38,6 @@ pub use user_commands::*;
 pub use user_title_tie_commands::*;
 pub use video_commands::*;
 pub use watch_provider_commands::*;
-
-async fn async_redis_cache<K, V>(prefix: &str) -> AsyncRedisCache<K, V>
-where
-    K: Display + Send + Sync,
-    V: DeserializeOwned + Display + Send + Serialize + Sync,
-{
-    AsyncRedisCache::new(format!("{prefix}:"), CACHE_CONFIG.ttl())
-        .set_connection_string(&CACHE_CONFIG.redis_url)
-        .set_refresh(true)
-        .build()
-        .await
-        .expect("Could not get redis cache")
-}
-
-#[allow(dead_code)]
-pub(crate) trait AsyncRedisCacheExt<K> {
-    async fn cache_remove(&self, prefix: &str, key: &K);
-}
-
-impl<K, V> AsyncRedisCacheExt<K> for OnceCell<AsyncRedisCache<K, V>>
-where
-    K: Display + Send + Sync,
-    V: DeserializeOwned + Display + Send + Serialize + Sync,
-{
-    async fn cache_remove(&self, prefix: &str, key: &K) {
-        let _ = self
-            .get_or_init(|| async { async_redis_cache(prefix).await })
-            .await
-            .cache_remove(key)
-            .await;
-    }
-}
 
 async fn download_file(source_url: Url, dest_path: PathBuf) -> anyhow::Result<()> {
     let content = reqwest::get(source_url).await?.bytes().await?;
@@ -104,7 +69,7 @@ async fn download_file(source_url: Url, dest_path: PathBuf) -> anyhow::Result<()
     map_error = r##"|_| anyhow::anyhow!("Could not get identity user")"##,
     convert = r#"{ username_or_id.to_lowercase() }"#,
     ty = "AsyncRedisCache<String, IdentityUser<'_>>",
-    create = r##"{ async_redis_cache(CACHE_PREFIX_GET_IDENTITY_USER).await }"##
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_IDENTITY_USER).await }"##
 )]
 pub async fn get_identity_user(client: &IdentityClient, username_or_id: &str) -> anyhow::Result<IdentityUser<'static>> {
     Ok(client.user(username_or_id).await?)

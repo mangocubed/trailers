@@ -4451,12 +4451,14 @@ dependencies = [
 [[package]]
 name = "toolbox"
 version = "0.0.0-alpha.0"
-source = "git+https://github.com/mangocubed/toolbox.git?rev=5be19cd#5be19cd7b1c0d4db8642245ee9114859c25b6c01"
+source = "git+https://github.com/mangocubed/toolbox.git?rev=bcfea50#bcfea502002faf48f1fe0ca57cb3e77d4f12b0d3"
 dependencies = [
+ "anyhow",
  "async-graphql",
  "cached",
  "chrono",
  "envconfig",
+ "lettre",
  "reqwest",
  "sentry",
  "serde",
@@ -4648,7 +4650,6 @@ dependencies = [
  "apalis-cron",
  "chrono",
  "envconfig",
- "lettre",
  "reqwest",
  "sentry",
  "serde",

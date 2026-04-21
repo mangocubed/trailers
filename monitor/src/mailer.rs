@@ -1,52 +1,10 @@
 use apalis::prelude::BoxDynError;
-use lettre::message::header::ContentType;
-use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
-use lettre::{Message, transport::smtp::authentication::Credentials};
 
+use toolbox::config::MAILER_CONFIG;
 use toolbox::identity_client::IdentityClient;
+use toolbox::mailer::send_email;
 
 use trailers_core::models::User;
-
-use crate::config::MAILER_CONFIG;
-
-async fn send_email(to: &str, subject: &str, body: &str) -> Result<(), BoxDynError> {
-    if !MAILER_CONFIG.enable {
-        return Ok(());
-    }
-
-    let message = Message::builder()
-        .from(
-            MAILER_CONFIG
-                .sender_address
-                .parse()
-                .expect("Could not parse mailer sender address"),
-        )
-        .to(to.parse().expect("Could not parse recipient address"))
-        .subject(subject)
-        .header(ContentType::TEXT_PLAIN)
-        .body(body.to_string())
-        .expect("Could not build message");
-
-    let credentials = Credentials::new(
-        MAILER_CONFIG.smtp_username.to_owned(),
-        MAILER_CONFIG.smtp_password.to_owned(),
-    );
-
-    match MAILER_CONFIG.smtp_security.as_str() {
-        "tls" => AsyncSmtpTransport::<Tokio1Executor>::relay(&MAILER_CONFIG.smtp_address),
-        "starttls" => AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&MAILER_CONFIG.smtp_address),
-        _ => Ok(AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(
-            MAILER_CONFIG.smtp_address.clone(),
-        )),
-    }
-    .expect("Could not get SMTP transport builder")
-    .credentials(credentials)
-    .build()
-    .send(message)
-    .await?;
-
-    Ok(())
-}
 
 pub async fn send_welcome_email(identity_client: &IdentityClient, user: &User) -> Result<(), BoxDynError> {
     let identity_user = user.identity_user(identity_client).await?;
@@ -60,7 +18,7 @@ pub async fn send_welcome_email(identity_client: &IdentityClient, user: &User) -
         identity_user.username, MAILER_CONFIG.support_email_address
     );
 
-    send_email(&identity_user.email, "Welcome to Filmstrip", &message).await
+    Ok(send_email(&identity_user.email, "Welcome to Filmstrip", &message).await?)
 }
 
 pub mod admin_emails {
@@ -78,11 +36,11 @@ Someone has created a new user account with the following username: @{}",
             identity_user.username
         );
 
-        send_email(
+        Ok(send_email(
             &MAILER_CONFIG.support_email_address,
             "(Admin) New user account created",
             &message,
         )
-        .await
+        .await?)
     }
 }

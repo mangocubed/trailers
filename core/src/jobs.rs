@@ -5,11 +5,6 @@ use uuid::Uuid;
 use toolbox::identity_client::IdentityClient;
 
 #[derive(Deserialize, Serialize)]
-pub struct GenerateVideoHlsJob {
-    pub video_id: Uuid,
-}
-
-#[derive(Deserialize, Serialize)]
 pub struct NewUserJob {
     pub identity_client: IdentityClient,
     pub user_id: Uuid,

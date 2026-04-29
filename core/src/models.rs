@@ -10,9 +10,9 @@ use uuid::Uuid;
 
 use toolbox::identity_client::{IdentityClient, IdentityUser};
 
+use crate::commands;
 use crate::config::STORAGE_CONFIG;
 use crate::enums::{TitleCrewJob, TitleMediaType, VideoOrientation, VideoSource, VideoType};
-use crate::{commands, jobs_storage};
 
 pub struct Genre<'a> {
     pub id: Uuid,
@@ -273,8 +273,6 @@ impl Video<'_> {
                     .unwrap(),
             )
         } else {
-            jobs_storage().await.push_generate_video_hls(self).await;
-
             None
         }
     }

@@ -45,5 +45,4 @@ uuid = { version = "1.23.1", features = ["serde"] }
 toolbox.workspace = true
 
 [features]
-default = ["graphql"]
 graphql = ["dep:async-graphql", "dep:regex", "toolbox/graphql"]

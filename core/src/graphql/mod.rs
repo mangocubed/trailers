@@ -1,14 +1,14 @@
 use async_graphql::{Context, EmptySubscription, Schema, SchemaBuilder};
 
+use toolbox::identity_client::IdentityClient;
+
+use crate::models::User;
+
 mod guards;
 mod input_objects;
 mod mutation_root;
 mod objects;
 mod query_root;
-
-use toolbox::identity_client::IdentityClient;
-
-use crate::models::User;
 
 use mutation_root::MutationRoot;
 use query_root::QueryRoot;

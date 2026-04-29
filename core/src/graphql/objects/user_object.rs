@@ -1,10 +1,9 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
-use url::Url;
 use uuid::Uuid;
 
-use toolbox::identity_client::IdentityUser;
+use toolbox::graphql::objects::IdentityUserObject;
 use toolbox::pagination::CursorParams;
 
 use crate::commands;
@@ -12,47 +11,6 @@ use crate::graphql::CustomContext;
 use crate::models::User;
 
 use super::UserTitleTieObject;
-
-pub struct IdentityUserObject<'a>(pub IdentityUser<'a>);
-
-#[Object]
-impl IdentityUserObject<'_> {
-    async fn id(&self) -> ID {
-        self.0.id.into()
-    }
-
-    async fn username(&self) -> &str {
-        &self.0.username
-    }
-
-    async fn display_name(&self) -> &str {
-        &self.0.display_name
-    }
-
-    async fn initials(&self) -> &str {
-        &self.0.initials
-    }
-
-    async fn language_code(&self) -> &str {
-        &self.0.language_code
-    }
-
-    async fn country_code(&self) -> &str {
-        &self.0.country_code
-    }
-
-    async fn avatar_image_url(&self) -> Url {
-        self.0.avatar_image_url.clone()
-    }
-
-    async fn created_at(&self) -> DateTime<Utc> {
-        self.0.created_at
-    }
-
-    async fn updated_at(&self) -> Option<DateTime<Utc>> {
-        self.0.updated_at
-    }
-}
 
 pub struct UserObject(pub User);
 

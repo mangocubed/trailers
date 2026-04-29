@@ -6,9 +6,9 @@ use uuid::Uuid;
 use toolbox::pagination::{CursorPage, CursorParams};
 
 use crate::config::YT_DLP_CONFIG;
+use crate::db_pool;
 use crate::enums::{VideoOrientation, VideoSource, VideoType};
 use crate::models::{Title, Video};
-use crate::{db_pool, jobs_storage};
 
 async fn delete_video(video: &Video<'_>) -> sqlx::Result<()> {
     let db_pool = db_pool().await;
@@ -18,44 +18,6 @@ async fn delete_video(video: &Video<'_>) -> sqlx::Result<()> {
         .await?;
 
     let _ = std::fs::remove_file(video.path());
-
-    Ok(())
-}
-
-pub fn generate_video_hls(video: &Video<'_>) -> anyhow::Result<()> {
-    let hls_path = video.hls_path();
-
-    if std::fs::exists(&hls_path).unwrap_or_default() {
-        return Ok(());
-    }
-
-    let hls_dir = hls_path.parent().expect("Could not get parent directory");
-
-    std::fs::create_dir_all(hls_dir)?;
-
-    let _ = Command::new("ffmpeg")
-        .args([
-            "-i",
-            video.path().to_str().unwrap(),
-            "-c:v",
-            "libx264",
-            "-c:a",
-            "aac",
-            "-crf",
-            "28",
-            "-preset",
-            "slower",
-            "-f",
-            "hls",
-            "-hls_time",
-            "6",
-            "-hls_playlist_type",
-            "vod",
-            "-hls_segment_filename",
-            hls_dir.join("segment-%02d.ts").to_str().unwrap(),
-            hls_path.to_str().unwrap(),
-        ])
-        .output()?;
 
     Ok(())
 }
@@ -179,8 +141,6 @@ pub async fn insert_video(
         let orientation = VideoOrientation::from_aspect_ratio(aspect_ratio);
 
         let _ = update_video_info(&video, duration_secs, orientation, Utc::now()).await;
-
-        jobs_storage().await.push_generate_video_hls(&video).await;
 
         Ok(())
     } else {

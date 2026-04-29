@@ -20,8 +20,8 @@ pub mod jobs;
 pub mod models;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
-use crate::jobs::{GenerateVideoHlsJob, NewUserJob, PopulateJob, TitleRecommendationsJob};
-use crate::models::{Title, User, Video};
+use crate::jobs::{NewUserJob, PopulateJob, TitleRecommendationsJob};
+use crate::models::{Title, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
@@ -45,7 +45,6 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
 }
 
 pub struct JobsStorage {
-    pub generate_video_hls: RedisStorage<GenerateVideoHlsJob>,
     pub new_user: RedisStorage<NewUserJob>,
     pub populate: RedisStorage<PopulateJob>,
     pub title_recommendations: RedisStorage<TitleRecommendationsJob>,
@@ -54,7 +53,6 @@ pub struct JobsStorage {
 impl JobsStorage {
     async fn new() -> Self {
         Self {
-            generate_video_hls: Self::storage().await,
             new_user: Self::storage().await,
             populate: Self::storage().await,
             title_recommendations: Self::storage().await,
@@ -67,14 +65,6 @@ impl JobsStorage {
             .expect("Could not connect to Redis Jobs DB");
 
         RedisStorage::new(conn)
-    }
-
-    pub(crate) async fn push_generate_video_hls(&self, video: &Video<'_>) {
-        self.generate_video_hls
-            .clone()
-            .push(GenerateVideoHlsJob { video_id: video.id })
-            .await
-            .expect("Could not store job");
     }
 
     pub(crate) async fn push_new_user(&self, identity_client: &IdentityClient, user: &User) {

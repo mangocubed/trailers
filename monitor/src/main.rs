@@ -42,16 +42,6 @@ async fn main() {
             .build(handlers::daily)
     };
 
-    let generate_video_hls_worker = |index| {
-        WorkerBuilder::new(format!("generate-video-hls-{index}"))
-            .backend(jobs_storage.generate_video_hls.clone())
-            .layer(NewSentryLayer::new_from_top())
-            .layer(SentryLayer::new())
-            .enable_tracing()
-            .concurrency(1)
-            .build(handlers::generate_video_hls)
-    };
-
     let new_user_worker = |index| {
         WorkerBuilder::new(format!("new-user-{index}"))
             .backend(jobs_storage.new_user.clone())
@@ -84,7 +74,6 @@ async fn main() {
 
     Monitor::new()
         .register(daily_worker)
-        .register(generate_video_hls_worker)
         .register(new_user_worker)
         .register(populate_worker)
         .register(title_recommendations_worker)

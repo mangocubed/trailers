@@ -2,7 +2,7 @@ use async_graphql::{ID, Object, Result};
 use chrono::{DateTime, Utc};
 use url::Url;
 
-use crate::enums::TitleCrewJob;
+use crate::enums::{TitleCrewJob, VideoSource};
 use crate::models::*;
 use crate::{Info, commands};
 
@@ -237,6 +237,14 @@ pub struct VideoObject<'a>(pub Video<'a>);
 impl VideoObject<'_> {
     async fn id(&self) -> ID {
         self.0.id.into()
+    }
+
+    async fn source(&self) -> VideoSource {
+        self.0.source
+    }
+
+    async fn source_key(&self) -> &str {
+        &self.0.source_key
     }
 
     async fn url(&self) -> Url {

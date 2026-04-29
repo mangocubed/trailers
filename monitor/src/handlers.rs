@@ -3,7 +3,7 @@ use apalis_cron::Tick;
 
 use tracing::info;
 use trailers_core::commands;
-use trailers_core::jobs::{GenerateVideoHlsJob, NewUserJob, PopulateJob, TitleRecommendationsJob};
+use trailers_core::jobs::{NewUserJob, PopulateJob, TitleRecommendationsJob};
 
 use crate::mailer::{admin_emails, send_welcome_email};
 use crate::populate::{populate_movies, populate_persons, populate_series};
@@ -14,20 +14,14 @@ pub async fn daily(_tick: Tick) -> Result<(), BoxDynError> {
     Ok(())
 }
 
-pub async fn generate_video_hls(job: GenerateVideoHlsJob) -> Result<(), BoxDynError> {
-    let video = commands::get_video_by_id(job.video_id).await?;
-
-    commands::generate_video_hls(&video)?;
-
-    Ok(())
-}
-
 pub async fn new_user(job: NewUserJob) -> Result<(), BoxDynError> {
     let user = commands::get_user_by_id(job.user_id).await?;
 
     let _ = admin_emails::send_new_user_email(&job.identity_client, &user).await;
 
-    send_welcome_email(&job.identity_client, &user).await
+    send_welcome_email(&job.identity_client, &user).await?;
+
+    Ok(())
 }
 
 pub async fn populate(job: PopulateJob) -> Result<(), BoxDynError> {

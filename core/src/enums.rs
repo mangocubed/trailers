@@ -33,7 +33,8 @@ impl VideoOrientation {
     }
 }
 
-#[derive(sqlx::Type, Clone, PartialEq)]
+#[cfg_attr(feature = "graphql", derive(async_graphql::Enum))]
+#[derive(sqlx::Type, Eq, Clone, Copy, PartialEq)]
 #[sqlx(type_name = "video_source", rename_all = "snake_case")]
 pub enum VideoSource {
     Youtube,

@@ -1,25 +1,25 @@
 use std::net::SocketAddr;
-use std::sync::LazyLock;
 
 use async_graphql::extensions::apollo_persisted_queries::{ApolloPersistedQueries, LruCacheStorage};
 use async_graphql::extensions::{ApolloTracing, Logger};
 use async_graphql_axum::{GraphQLBatchRequest, GraphQLResponse};
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{Method, Request, StatusCode};
+use axum::http::{Method, Request};
 use axum::response::{IntoResponse, Result};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use axum_client_ip::ClientIp;
 use axum_extra::TypedHeader;
 use axum_extra::headers::Authorization;
-use axum_extra::headers::authorization::Bearer;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
+use toolbox::axum::{AuthorizationBearer, OrHttpError};
+use toolbox::constants::RESPONSE_ERROR_UNAUTHORIZED;
 use toolbox::identity_client::IdentityClient;
 use toolbox::tracing::start_tracing_subscriber;
 
@@ -31,33 +31,24 @@ use crate::config::API_CONFIG;
 
 mod config;
 
-static ERROR_UNAUTHORIZED: LazyLock<(StatusCode, Json<serde_json::Value>)> = LazyLock::new(|| {
-    (
-        StatusCode::UNAUTHORIZED,
-        Json(serde_json::json!({"message": "Unauthorized"})),
-    )
-});
-
 async fn get_index() -> impl IntoResponse {
     Json(Info::default())
 }
 
 async fn post_graphql(
     State(schema): State<GraphqlSchema>,
-    authorization: Option<TypedHeader<Authorization<Bearer>>>,
+    authorization: Option<AuthorizationBearer>,
     ClientIp(client_ip): ClientIp,
     batch_request: GraphQLBatchRequest,
 ) -> Result<GraphQLResponse> {
     let Some(TypedHeader(Authorization(bearer))) = authorization else {
-        return Err(ERROR_UNAUTHORIZED.clone().into());
+        return Err(RESPONSE_ERROR_UNAUTHORIZED.clone().into());
     };
 
     let token = bearer.token().to_owned();
     let identity_client = IdentityClient::new(&token);
 
-    if identity_client.authorized().await.is_err() {
-        return Err(ERROR_UNAUTHORIZED.clone().into());
-    }
+    identity_client.authorized().await.or_unauthorized()?;
 
     let mut batch_request = batch_request.into_inner();
 

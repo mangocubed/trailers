@@ -29,4 +29,4 @@ url = { version = "2.5.8", features = ["serde"] }
 trailers-core = { path = "./core", default-features = false }
 toolbox = { git = "https://github.com/mangocubed/toolbox.git", features = [
     "identity-client",
-], rev = "15c265d" }
+], rev = "044f6b8" }
